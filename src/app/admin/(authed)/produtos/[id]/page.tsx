@@ -10,7 +10,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
   if (!product) notFound();
 
   return (
-    <div className="px-6 md:px-10 pt-6 md:pt-8">
+    <div className="px-6 md:px-10 md:pt-8">
       <ProductForm product={product} brands={brands} />
     </div>
   );

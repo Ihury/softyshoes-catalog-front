@@ -26,7 +26,7 @@ export function ProductCard({
           <ProductImage
             src={product.photos?.[0]}
             alt={product.name}
-            className={`w-full ${imageClassName}`}
+            className={`relative w-full ${imageClassName}`}
           />
           <span className="absolute top-3 left-3">
             {product.promotion ? (

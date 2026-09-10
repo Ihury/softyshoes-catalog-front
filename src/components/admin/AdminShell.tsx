@@ -55,7 +55,7 @@ export function AdminShell({
           })}
         </nav>
         <div className="mt-auto flex flex-col gap-2">
-          <div className="text-xs text-ink-50">{productCount} modelos</div>
+          <div className="text-xs text-ink-50">{productCount} modelos no catálogo</div>
           <div className="text-xs text-ink-25">Selecionado SOFTY.</div>
         </div>
       </aside>

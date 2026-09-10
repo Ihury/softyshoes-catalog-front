@@ -43,9 +43,20 @@ export function SellerView({ seller }: { seller: SellerSettings }) {
 
   return (
     <form action={onSave}>
-      <div className="text-xs text-ink-50">Contato do vendedor</div>
+      <div className="flex items-center justify-between gap-6">
+        <div className="text-xs md:text-md md:font-normal text-ink-50 md:text-ink">Contato do vendedor</div>
+        <button
+          type="submit"
+          className="hidden md:block h-10 min-w-[116px] px-3 rounded-ui bg-ink text-paper text-sm font-normal transition-opacity hover:opacity-[.86] active:scale-[.98]"
+        >
+          Salvar contato
+        </button>
+      </div>
 
-      <div className="mt-4 flex flex-col gap-3">
+      {/* Desktop splits into form | generated-link card, as in the handoff. */}
+      <div className="mt-4 md:mt-6 md:grid md:grid-cols-2 md:gap-14 md:max-w-[1040px]">
+      <div>
+      <div className="flex flex-col gap-3 md:gap-4">
         <label className="flex flex-col gap-2">
           <span className="text-xs text-ink-50">Nome do vendedor</span>
           <input
@@ -86,7 +97,7 @@ export function SellerView({ seller }: { seller: SellerSettings }) {
         </label>
       </div>
 
-      <div className="mt-5 flex flex-col">
+      <div className="mt-5 md:mt-4 flex flex-col">
         {FLAGS.map((f) => (
           <button
             key={f.key}
@@ -109,11 +120,15 @@ export function SellerView({ seller }: { seller: SellerSettings }) {
         ))}
       </div>
 
-      <div className="mt-5 text-xs text-ink-50">Link gerado (exemplo)</div>
-      <div className="mt-2 px-4 py-3 border border-ink-10 rounded-ui text-xs leading-[1.65] text-ink-50 break-all">
+      </div>
+
+      <div className="mt-5 md:mt-0">
+      <div className="md:p-6 md:border md:border-ink-10 md:rounded-ui">
+      <div className="text-xs text-ink-50">Link gerado (exemplo)</div>
+      <div className="mt-2 md:mt-3 px-4 py-3 md:p-0 border md:border-0 border-ink-10 rounded-ui text-xs leading-[1.65] text-ink-50 break-all">
         {previewLink}
       </div>
-      <div className="mt-3 flex gap-3">
+      <div className="mt-3 md:mt-4 flex gap-3">
         <button
           type="button"
           onClick={() => {
@@ -142,13 +157,17 @@ export function SellerView({ seller }: { seller: SellerSettings }) {
           Testar envio
         </button>
       </div>
-      <div className="mt-4 text-xs leading-[1.65] text-ink-25">
+      <div className="mt-4 md:mt-5 text-xs leading-[1.65] text-ink-25">
         O botão &quot;Enviar fotos para o vendedor&quot; do app do cliente usa este número e esta mensagem, com o link do
         pedido real no lugar do exemplo acima.
       </div>
-      <div className="mt-5 text-xs text-ink-25">Selecionado SOFTY.</div>
+      </div>
+      </div>
+      </div>
 
-      <div className="mt-6 flex gap-3">
+      <div className="mt-5 md:mt-14 text-xs text-ink-25">Selecionado SOFTY.</div>
+
+      <div className="md:hidden mt-6 flex gap-3">
         <button
           type="submit"
           className="h-10 min-w-[116px] px-3 rounded-ui bg-ink text-paper text-sm font-normal transition-opacity hover:opacity-[.86] active:scale-[.98]"

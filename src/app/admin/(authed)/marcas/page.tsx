@@ -24,7 +24,7 @@ export default async function BrandsPage() {
   });
 
   return (
-    <div className="px-6 md:px-10 pt-6 md:pt-8 pb-24 md:pb-14 max-w-[720px]">
+    <div className="px-6 md:px-10 md:pt-8 pb-[82px] md:pb-14 max-w-[720px] md:max-w-[800px]">
       <BrandsView rows={rows} />
     </div>
   );

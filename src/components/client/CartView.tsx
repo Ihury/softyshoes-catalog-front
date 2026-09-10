@@ -61,7 +61,7 @@ export function CartView({ seller, siteUrl }: { seller: SellerSettings; siteUrl:
   }
 
   return (
-    <div className="max-w-[1280px] mx-auto px-6 md:px-12 pt-3 md:pt-8 pb-24 md:pb-14">
+    <div className="max-w-[1280px] mx-auto px-6 md:px-12 md:pt-8 pb-[82px] md:pb-14">
       <Link
         href="/"
         className="hidden md:flex h-10 items-center gap-2 text-xs text-ink-50 transition-colors hover:text-ink w-fit"
@@ -72,14 +72,14 @@ export function CartView({ seller, siteUrl }: { seller: SellerSettings; siteUrl:
 
       <div className="md:mt-4 md:grid md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] md:gap-14">
         <div>
-          <div className="text-xs text-ink-50">Carrinho</div>
+          <div className="hidden md:block text-xs text-ink-50">Carrinho</div>
           {items.map((c) => (
             <div
               key={c.key}
               className="py-5 md:py-6 border-b border-ink-03 flex items-start gap-4 md:gap-6"
               style={{ animation: "sfRow .3s cubic-bezier(.22,1,.36,1) both" }}
             >
-              <ProductImage src={c.photo} alt={c.name} className="flex-none w-[76px] h-[76px] md:w-24 md:h-24" />
+              <ProductImage src={c.photo} alt={c.name} className="relative flex-none w-[76px] h-[76px] md:w-24 md:h-24" />
               <div className="flex-1 min-w-0 flex flex-col gap-1">
                 <div className="text-sm font-normal text-ink whitespace-nowrap overflow-hidden text-ellipsis">
                   {c.name}

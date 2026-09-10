@@ -86,7 +86,11 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
         </div>
       </div>
 
-      <div className="mt-3 relative h-[223px] md:h-[280px] rounded-ui overflow-hidden">
+      {/* Desktop splits into photos | fields, as in the handoff; mobile stacks. */}
+      <div className="mt-3 md:mt-6 md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] md:gap-14">
+      <div>
+      <div className="hidden md:block text-xs text-ink-50 mb-3">Fotos</div>
+      <div className="relative h-[223px] md:h-auto md:aspect-[4/3] rounded-ui overflow-hidden">
         <ProductImage src={photos[0]} alt="" className="absolute inset-0" />
       </div>
       <div className="mt-3 flex gap-3">
@@ -110,8 +114,21 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
       {photos.map((url) => (
         <input key={url} type="hidden" name="photos" value={url} />
       ))}
+      {product ? (
+        <button
+          type="button"
+          onClick={() => {
+            if (confirm("Remover este modelo do catálogo?")) deleteProduct(product.id);
+          }}
+          className="hidden md:block mt-6 text-xs text-ink-50 transition-colors hover:text-ink"
+        >
+          Remover do catálogo
+        </button>
+      ) : null}
+      </div>
 
-      <div className="mt-5 flex flex-col gap-3 max-w-[520px]">
+      <div className="md:min-w-0">
+      <div className="mt-5 md:mt-0 flex flex-col gap-3 md:gap-4 max-w-[520px] md:max-w-none">
         <label className="flex flex-col gap-2">
           <span className="text-xs text-ink-50">Modelo</span>
           <input
@@ -195,7 +212,7 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
         </label>
       </div>
 
-      <div className="mt-5 flex flex-col max-w-[520px]">
+      <div className="mt-5 md:mt-4 flex flex-col max-w-[520px] md:max-w-none">
         {FLAGS.map((f) => (
           <button
             key={f.key}
@@ -218,16 +235,17 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
         ))}
       </div>
 
-      <div className="mt-5 text-xs text-ink-50">Numerações disponíveis</div>
-      <div className="mt-3 max-w-[720px]">
+      <div className="mt-5 md:mt-4 text-xs text-ink-50">Numerações disponíveis</div>
+      <div className="mt-3 max-w-[720px] md:max-w-none">
         <SizeToggleGrid
           active={sizes}
           onToggle={(n) => setSizes((prev) => (prev.includes(n) ? prev.filter((x) => x !== n) : prev.concat(n).sort((a, b) => a - b)))}
-          columns={5}
         />
         {sizes.map((n) => (
           <input key={n} type="hidden" name="sizes" value={n} />
         ))}
+      </div>
+      </div>
       </div>
 
       {product ? (
@@ -236,12 +254,12 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
           onClick={() => {
             if (confirm("Remover este modelo do catálogo?")) deleteProduct(product.id);
           }}
-          className="mt-6 text-xs text-ink-50 transition-colors hover:text-ink"
+          className="md:hidden mt-6 text-xs text-ink-50 transition-colors hover:text-ink"
         >
           Remover do catálogo
         </button>
       ) : null}
-      <div className="mt-4 text-xs text-ink-25">Selecionado SOFTY.</div>
+      <div className="mt-4 md:mt-14 text-xs text-ink-25">Selecionado SOFTY.</div>
 
       <div className="md:hidden fixed left-0 right-0 bottom-0 px-6 py-4 flex gap-3 pointer-events-none">
         <button

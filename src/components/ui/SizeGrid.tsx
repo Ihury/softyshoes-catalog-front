@@ -7,15 +7,14 @@ export function SizeSelectGrid({
   availableSizes,
   selected,
   onSelect,
-  columns = 5,
 }: {
   availableSizes: number[];
   selected: number | null;
   onSelect: (size: number) => void;
-  columns?: number;
 }) {
   return (
-    <div className="grid gap-[10px]" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0,1fr))` }}>
+    // Mobile: 5 fluid columns, 10px gap. Desktop: 5 columns capped at 72px, 12px gap.
+    <div className="grid grid-cols-5 gap-[10px] md:gap-3 md:[grid-template-columns:repeat(5,minmax(0,72px))]">
       {SIZES.map((n) => {
         const disabled = !availableSizes.includes(n);
         const isSelected = !disabled && selected === n;
@@ -52,14 +51,13 @@ export function SizeSelectGrid({
 export function SizeToggleGrid({
   active,
   onToggle,
-  columns = 5,
 }: {
   active: number[];
   onToggle: (size: number) => void;
-  columns?: number;
 }) {
   return (
-    <div className="grid gap-[10px]" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0,1fr))` }}>
+    // Mobile: 5 columns, 10px gap. Desktop: the full run of 10 on one row, 8px gap.
+    <div className="grid grid-cols-5 gap-[10px] md:grid-cols-10 md:gap-2">
       {SIZES.map((n) => {
         const on = active.includes(n);
         return (

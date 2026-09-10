@@ -26,8 +26,8 @@ export function BrandsView({ rows }: { rows: Row[] }) {
 
   return (
     <div>
-      <div className="text-xs text-ink-50">Marcas</div>
-      <div className="mt-3 flex flex-col">
+      <div className="text-xs md:text-md md:font-normal text-ink-50 md:text-ink">Marcas</div>
+      <div className="mt-3 md:mt-6 flex flex-col">
         {rows.map((b) => (
           <div key={b.id} className="py-4 border-b border-ink-03 flex items-center justify-between gap-4">
             <div className="flex-1 min-w-0 flex flex-col gap-1">
@@ -65,7 +65,7 @@ export function BrandsView({ rows }: { rows: Row[] }) {
         ) : null}
       </div>
 
-      <div className="mt-5 flex gap-3">
+      <div className="mt-5 md:mt-6 flex gap-3">
         <input
           value={newBrand}
           onChange={(e) => {
@@ -90,7 +90,7 @@ export function BrandsView({ rows }: { rows: Row[] }) {
           {brandError}
         </div>
       ) : null}
-      <div className="mt-5 text-xs text-ink-25">Selecionado SOFTY.</div>
+      <div className="mt-5 md:mt-14 text-xs text-ink-25">Selecionado SOFTY.</div>
     </div>
   );
 }

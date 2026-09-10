@@ -110,51 +110,57 @@
   100% { transform: translateX(320%); }
 }
 
-* {
-  box-sizing: border-box;
-}
+/* These element resets mirror the design prototype. They must live inside
+   `@layer base` so Tailwind utilities (bg-ink, text-paper, …) still win —
+   unlayered rules outrank every layered one and would silently strip the
+   background and color off every button, input and link in the app. */
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
 
-html,
-body {
-  margin: 0;
-  background: var(--paper);
-  color: var(--ink);
-  font-family: var(--font-inst, "PP Neue Montreal", "Neue Montreal", Helvetica,
-    "Helvetica Neue", Arial, sans-serif);
-  font-weight: 300;
-  letter-spacing: 0.03em;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-}
+  html,
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-inst, "PP Neue Montreal", "Neue Montreal", Helvetica,
+      "Helvetica Neue", Arial, sans-serif);
+    font-weight: 300;
+    letter-spacing: 0.03em;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
 
-button {
-  font: inherit;
-  letter-spacing: inherit;
-  color: inherit;
-  border: 0;
-  background: none;
-  padding: 0;
-  cursor: pointer;
-}
+  button {
+    font: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    border: 0;
+    background: none;
+    padding: 0;
+    cursor: pointer;
+  }
 
-input,
-textarea {
-  font: inherit;
-  letter-spacing: inherit;
-  color: inherit;
-}
+  input,
+  textarea {
+    font: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+  }
 
-a {
-  color: var(--ink);
-  text-decoration: none;
-}
-a:hover {
-  color: var(--ink-50);
-}
+  a {
+    color: var(--ink);
+    text-decoration: none;
+  }
+  a:hover {
+    color: var(--ink-50);
+  }
 
-::-webkit-scrollbar {
-  width: 0;
-  height: 0;
+  ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
 }
 
 .no-scrollbar {

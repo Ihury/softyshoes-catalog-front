@@ -40,7 +40,7 @@ export default async function HomePage({
   const empty = products.length === 0;
 
   return (
-    <div className="max-w-[1280px] mx-auto px-6 md:px-12 pt-6 md:pt-8 pb-6 md:pb-14">
+    <div className="max-w-[1280px] mx-auto px-6 md:px-12 md:pt-8 pb-6 md:pb-14">
       {featured ? (
         <Link
           href={`/produto/${featured.id}`}
@@ -49,7 +49,11 @@ export default async function HomePage({
         >
           <ProductImage src={featured.photos?.[0]} alt={featured.name} className="absolute inset-0" />
           <div className="absolute top-4 left-4 md:top-6 md:left-6 flex gap-2">
-            <Chip variant="dark">Destaque</Chip>
+            {/* Mobile mirrors the model's own chip; desktop labels the slot. */}
+            <Chip variant="dark">
+              <span className="md:hidden">{featured.promotion ? "Promoção" : "Disponível"}</span>
+              <span className="hidden md:inline">Destaque</span>
+            </Chip>
             <Chip variant="mid">Uso diário</Chip>
           </div>
           <div className="absolute left-4 right-4 bottom-4 md:left-6 md:right-auto md:bottom-6 md:max-w-[420px] px-3 py-2 bg-paper-50 backdrop-blur-[20px] rounded-ui flex items-center gap-3 md:gap-4">

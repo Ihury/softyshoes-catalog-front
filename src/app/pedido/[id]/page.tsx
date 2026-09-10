@@ -21,7 +21,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         <div className="mt-8 flex flex-col">
           {order.items.map((item, i) => (
             <div key={i} className="py-5 border-b border-ink-03 flex items-center gap-4">
-              <ProductImage src={item.photo} alt={item.name} className="flex-none w-20 h-20 md:w-24 md:h-24" />
+              <ProductImage src={item.photo} alt={item.name} className="relative flex-none w-20 h-20 md:w-24 md:h-24" />
               <div className="flex-1 min-w-0 flex flex-col gap-1">
                 <div className="text-sm font-normal">{item.name}</div>
                 <div className="text-xs text-ink-50">Numeração {item.size} · Qtd {item.qty}</div>

@@ -33,7 +33,7 @@ export default async function AdminListPage({
   }
 
   return (
-    <div className="px-6 md:px-10 pt-6 md:pt-8 pb-24 md:pb-14">
+    <div className="px-6 md:px-10 md:pt-8 pb-[82px] md:pb-14">
       <AdminListControls brands={brands} countLabel={`${products.length} modelos`} />
 
       {/* mobile rows */}
@@ -45,7 +45,7 @@ export default async function AdminListPage({
             className="py-4 border-b border-ink-03 flex items-start gap-4 transition-opacity hover:opacity-[.62]"
             style={{ animation: "sfUp .6s cubic-bezier(.22,1,.36,1) both", animationDelay: `${0.05 * Math.min(i, 7)}s` }}
           >
-            <ProductImage src={p.photos?.[0]} alt={p.name} className="flex-none w-[76px] h-[76px]" />
+            <ProductImage src={p.photos?.[0]} alt={p.name} className="relative flex-none w-[76px] h-[76px]" />
             <div className="flex-1 min-w-0 flex flex-col gap-1">
               <div className="text-sm font-normal text-ink whitespace-nowrap overflow-hidden text-ellipsis">
                 {p.name}
@@ -89,7 +89,7 @@ export default async function AdminListPage({
               animationDelay: `${0.05 * Math.min(i, 7)}s`,
             }}
           >
-            <ProductImage src={p.photos?.[0]} alt={p.name} className="w-24 h-[72px]" />
+            <ProductImage src={p.photos?.[0]} alt={p.name} className="relative w-24 h-[72px]" />
             <div className="min-w-0 flex flex-col gap-1">
               <div className="text-sm font-normal whitespace-nowrap overflow-hidden text-ellipsis">{p.name}</div>
               {p.featured ? <div className="text-xs text-ink-50">Destaque na home</div> : null}
@@ -99,7 +99,7 @@ export default async function AdminListPage({
               <div className="text-sm">{brl(p.price)}</div>
               {p.old_price ? <div className="text-xs text-ink-25 line-through">{brl(p.old_price)}</div> : null}
             </div>
-            <div className="text-xs text-ink-50">{p.sizes.length}</div>
+            <div className="text-xs text-ink-50">{p.sizes.length} numerações</div>
             <div className="text-xs text-ink-50">{statusLabel(p)}</div>
           </Link>
         ))}

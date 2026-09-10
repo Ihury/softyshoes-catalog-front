@@ -11,11 +11,16 @@ export function FilterTabs({
   active: Tab;
   onChange: (tab: Tab) => void;
   className?: string;
+  /**
+   * Desktop-only: size each tab to its label (116px min) instead of splitting
+   * the bar evenly. Mobile always splits evenly — 4 tabs at 116px overflow the
+   * 24px gutters on a phone.
+   */
   inline?: boolean;
 }) {
   return (
     <div
-      className={`h-10 bg-ink rounded-ui flex items-center ${inline ? "inline-flex" : ""} ${className}`}
+      className={`h-10 bg-ink rounded-ui flex items-center ${inline ? "md:inline-flex" : ""} ${className}`}
     >
       {TABS.map((label) => {
         const on = active === label;
@@ -24,7 +29,7 @@ export function FilterTabs({
             key={label}
             type="button"
             onClick={() => onChange(label)}
-            className={`h-10 ${inline ? "min-w-[116px] px-3" : "flex-1"} rounded-ui text-xs whitespace-nowrap transition-colors duration-200 ${
+            className={`h-10 flex-1 ${inline ? "md:flex-none md:min-w-[116px] md:px-3" : ""} rounded-ui text-xs whitespace-nowrap transition-colors duration-200 ${
               on ? "text-paper font-normal" : "text-paper-50"
             }`}
           >
