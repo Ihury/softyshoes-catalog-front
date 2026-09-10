@@ -56,8 +56,8 @@
   --color-paper: var(--paper);
   --color-paper-50: var(--paper-50);
 
-  --font-sans: var(--font-inst), "PP Neue Montreal", "Neue Montreal", Helvetica,
-    "Helvetica Neue", Arial, sans-serif;
+  --font-sans: var(--font-inst, "PP Neue Montreal", "Neue Montreal", Helvetica,
+    "Helvetica Neue", Arial, sans-serif);
 
   --radius-r: var(--r);
 
@@ -119,8 +119,8 @@ body {
   margin: 0;
   background: var(--paper);
   color: var(--ink);
-  font-family: var(--font-inst), "PP Neue Montreal", "Neue Montreal", Helvetica,
-    "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-inst, "PP Neue Montreal", "Neue Montreal", Helvetica,
+    "Helvetica Neue", Arial, sans-serif);
   font-weight: 300;
   letter-spacing: 0.03em;
   -webkit-font-smoothing: antialiased;
