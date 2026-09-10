@@ -1,0 +1,175 @@
+@import "tailwindcss";
+
+:root {
+  --ink: #090909;
+  --ink-50: rgba(9, 9, 9, 0.5);
+  --ink-25: rgba(9, 9, 9, 0.25);
+  --ink-10: rgba(9, 9, 9, 0.1);
+  --ink-03: rgba(9, 9, 9, 0.03);
+  --paper: #fafafa;
+  --paper-50: rgba(250, 250, 250, 0.5);
+
+  --fs-xs: 12px;
+  --fs-sm: 14px;
+  --fs-md: 16px;
+  --fs-xl: 30px;
+
+  --w-reg: 300;
+  --w-mid: 400;
+
+  --r: 4px;
+  --h-btn: 40px;
+  --h-icon: 40px;
+  --h-step: 34px;
+  --h-tile: 40px;
+  --h-top: 58px;
+  --sz-thumb: 76px;
+  --sz-thumb-lg: 96px;
+  --w-num: 22px;
+  --chip-pad: 0 12px;
+  --chip-h: 40px;
+  --chip-w: 116px;
+
+  --gutter: 24px;
+  --gutter-lg: 48px;
+  --gutter-admin-lg: 40px;
+  --maxw: 1280px;
+  --sidebar-w: 264px;
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+  --sp-14: 56px;
+}
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-ink-50: var(--ink-50);
+  --color-ink-25: var(--ink-25);
+  --color-ink-10: var(--ink-10);
+  --color-ink-03: var(--ink-03);
+  --color-paper: var(--paper);
+  --color-paper-50: var(--paper-50);
+
+  --font-sans: var(--font-inst), "PP Neue Montreal", "Neue Montreal", Helvetica,
+    "Helvetica Neue", Arial, sans-serif;
+
+  --radius-r: var(--r);
+
+  --spacing-1: var(--sp-1);
+  --spacing-2: var(--sp-2);
+  --spacing-3: var(--sp-3);
+  --spacing-4: var(--sp-4);
+  --spacing-5: var(--sp-5);
+  --spacing-6: var(--sp-6);
+  --spacing-8: var(--sp-8);
+  --spacing-10: var(--sp-10);
+  --spacing-14: var(--sp-14);
+
+  --text-xs: var(--fs-xs);
+  --text-sm: var(--fs-sm);
+  --text-md: var(--fs-md);
+  --text-xl: var(--fs-xl);
+}
+
+@keyframes sfIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes sfInBack {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes sfPop {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes sfFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes sfSheet {
+  from { transform: translateY(101%); }
+  to { transform: none; }
+}
+@keyframes sfRow {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes sfUp {
+  from { opacity: 0; transform: translateY(26px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes sfBar {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(320%); }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-inst), "PP Neue Montreal", "Neue Montreal", Helvetica,
+    "Helvetica Neue", Arial, sans-serif;
+  font-weight: 300;
+  letter-spacing: 0.03em;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button {
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+input,
+textarea {
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+}
+
+a {
+  color: var(--ink);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--ink-50);
+}
+
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.sheet-panel {
+  animation: sfSheet 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (min-width: 768px) {
+  .sheet-panel {
+    animation: sfPop 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
