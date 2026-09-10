@@ -19,7 +19,7 @@ export function Chip({
 }) {
   return (
     <span
-      className={`h-10 min-w-[116px] px-3 rounded-r inline-flex items-center justify-center text-xs ${variants[variant]} ${className}`}
+      className={`h-10 min-w-[116px] px-3 rounded-ui inline-flex items-center justify-center text-xs ${variants[variant]} ${className}`}
       style={{ backdropFilter: `blur(${blur}px)`, WebkitBackdropFilter: `blur(${blur}px)` }}
     >
       {children}

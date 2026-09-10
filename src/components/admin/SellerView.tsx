@@ -53,7 +53,7 @@ export function SellerView({ seller }: { seller: SellerSettings }) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Atendimento SOFTY"
-            className="h-10 px-4 border border-ink-10 rounded-r bg-paper text-sm text-ink outline-none transition-colors focus:border-ink-25"
+            className="h-10 px-4 border border-ink-10 rounded-ui bg-paper text-sm text-ink outline-none transition-colors focus:border-ink-25"
           />
         </label>
 
@@ -68,7 +68,7 @@ export function SellerView({ seller }: { seller: SellerSettings }) {
             }}
             placeholder="+55 11 90000-0000"
             inputMode="tel"
-            className="h-10 px-4 border border-ink-10 rounded-r bg-paper text-sm text-ink outline-none transition-colors focus:border-ink-25"
+            className="h-10 px-4 border border-ink-10 rounded-ui bg-paper text-sm text-ink outline-none transition-colors focus:border-ink-25"
           />
         </label>
         {phoneError ? <div className="text-xs text-ink">Informe um número com DDI e DDD.</div> : null}
@@ -81,7 +81,7 @@ export function SellerView({ seller }: { seller: SellerSettings }) {
             onChange={(e) => setMessage(e.target.value)}
             rows={4}
             placeholder="Olá. Segue o modelo selecionado."
-            className="px-4 py-3 border border-ink-10 rounded-r bg-paper text-xs leading-[1.65] text-ink outline-none resize-none transition-colors focus:border-ink-25"
+            className="px-4 py-3 border border-ink-10 rounded-ui bg-paper text-xs leading-[1.65] text-ink outline-none resize-none transition-colors focus:border-ink-25"
           />
         </label>
       </div>
@@ -110,7 +110,7 @@ export function SellerView({ seller }: { seller: SellerSettings }) {
       </div>
 
       <div className="mt-5 text-xs text-ink-50">Link gerado (exemplo)</div>
-      <div className="mt-2 px-4 py-3 border border-ink-10 rounded-r text-xs leading-[1.65] text-ink-50 break-all">
+      <div className="mt-2 px-4 py-3 border border-ink-10 rounded-ui text-xs leading-[1.65] text-ink-50 break-all">
         {previewLink}
       </div>
       <div className="mt-3 flex gap-3">
@@ -124,7 +124,7 @@ export function SellerView({ seller }: { seller: SellerSettings }) {
             navigator.clipboard?.writeText(previewLink);
             flash("Link copiado.");
           }}
-          className="h-10 min-w-[116px] px-3 rounded-r border border-ink-10 bg-paper text-ink-50 text-sm transition-colors hover:border-ink-25 hover:text-ink"
+          className="h-10 min-w-[116px] px-3 rounded-ui border border-ink-10 bg-paper text-ink-50 text-sm transition-colors hover:border-ink-25 hover:text-ink"
         >
           Copiar link
         </button>
@@ -137,7 +137,7 @@ export function SellerView({ seller }: { seller: SellerSettings }) {
             }
             window.open(previewLink, "_blank");
           }}
-          className="h-10 min-w-[116px] px-3 rounded-r border border-ink-10 bg-paper text-ink-50 text-sm transition-colors hover:border-ink-25 hover:text-ink"
+          className="h-10 min-w-[116px] px-3 rounded-ui border border-ink-10 bg-paper text-ink-50 text-sm transition-colors hover:border-ink-25 hover:text-ink"
         >
           Testar envio
         </button>
@@ -151,13 +151,13 @@ export function SellerView({ seller }: { seller: SellerSettings }) {
       <div className="mt-6 flex gap-3">
         <button
           type="submit"
-          className="h-10 min-w-[116px] px-3 rounded-r bg-ink text-paper text-sm font-normal transition-opacity hover:opacity-[.86] active:scale-[.98]"
+          className="h-10 min-w-[116px] px-3 rounded-ui bg-ink text-paper text-sm font-normal transition-opacity hover:opacity-[.86] active:scale-[.98]"
         >
           Salvar contato
         </button>
         <Link
           href="/admin"
-          className="h-10 min-w-[116px] px-3 rounded-r border border-ink-10 bg-paper text-ink-50 text-sm flex items-center justify-center transition-transform active:scale-[.98]"
+          className="h-10 min-w-[116px] px-3 rounded-ui border border-ink-10 bg-paper text-ink-50 text-sm flex items-center justify-center transition-transform active:scale-[.98]"
         >
           Voltar
         </Link>

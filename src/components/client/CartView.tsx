@@ -123,7 +123,7 @@ export function CartView({ seller, siteUrl }: { seller: SellerSettings; siteUrl:
               </Button>
               <Link
                 href="/"
-                className="h-10 border border-ink-10 bg-paper text-ink-50 text-sm rounded-r flex items-center justify-center transition-[border-color,color,transform] hover:border-ink hover:text-ink active:scale-[.98]"
+                className="h-10 border border-ink-10 bg-paper text-ink-50 text-sm rounded-ui flex items-center justify-center transition-[border-color,color,transform] hover:border-ink hover:text-ink active:scale-[.98]"
               >
                 Continuar no catálogo
               </Link>
@@ -145,7 +145,7 @@ export function CartView({ seller, siteUrl }: { seller: SellerSettings; siteUrl:
         </Button>
         <Link
           href="/"
-          className="pointer-events-auto flex-none min-w-[116px] px-3 h-10 border border-ink-10 bg-paper-50 backdrop-blur-[20px] text-ink-50 text-sm rounded-r flex items-center justify-center transition-transform active:scale-[.98]"
+          className="pointer-events-auto flex-none min-w-[116px] px-3 h-10 border border-ink-10 bg-paper-50 backdrop-blur-[20px] text-ink-50 text-sm rounded-ui flex items-center justify-center transition-transform active:scale-[.98]"
         >
           Voltar
         </Link>

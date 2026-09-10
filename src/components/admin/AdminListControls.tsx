@@ -57,12 +57,12 @@ export function AdminListControls({ brands, countLabel }: { brands: Brand[]; cou
               }}
               placeholder="Buscar modelo"
               aria-label="Buscar modelo"
-              className="flex-1 md:w-[280px] min-w-0 h-10 px-4 border border-ink-10 rounded-r bg-paper text-sm text-ink outline-none transition-colors focus:border-ink-25"
+              className="flex-1 md:w-[280px] min-w-0 h-10 px-4 border border-ink-10 rounded-ui bg-paper text-sm text-ink outline-none transition-colors focus:border-ink-25"
             />
             <button
               type="button"
               onClick={() => setBrandOpen(true)}
-              className="flex-none h-10 min-w-[116px] px-3 rounded-r bg-ink text-paper md:bg-paper md:border md:border-ink-10 md:text-ink text-sm flex items-center justify-center gap-2 transition-[opacity,border-color] hover:opacity-[.86] md:hover:opacity-100 md:hover:border-ink-25"
+              className="flex-none h-10 min-w-[116px] px-3 rounded-ui bg-ink text-paper md:bg-paper md:border md:border-ink-10 md:text-ink text-sm flex items-center justify-center gap-2 transition-[opacity,border-color] hover:opacity-[.86] md:hover:opacity-100 md:hover:border-ink-25"
             >
               <span>{activeBrand === "Todas" ? "Marca" : activeBrand}</span>
               <IconChevronDown className="text-paper md:text-ink" stroke="currentColor" />
@@ -70,7 +70,7 @@ export function AdminListControls({ brands, countLabel }: { brands: Brand[]; cou
           </form>
           <Link
             href="/admin/produtos/novo"
-            className="hidden md:inline-flex h-10 min-w-[116px] px-3 rounded-r bg-ink text-paper text-sm items-center justify-center font-normal transition-opacity hover:opacity-[.86] active:scale-[.97]"
+            className="hidden md:inline-flex h-10 min-w-[116px] px-3 rounded-ui bg-ink text-paper text-sm items-center justify-center font-normal transition-opacity hover:opacity-[.86] active:scale-[.97]"
           >
             Novo modelo
           </Link>

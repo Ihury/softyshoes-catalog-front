@@ -88,7 +88,7 @@ export function ProductDetail({ product, related }: { product: Product; related:
 
       <div className="md:mt-4 md:grid md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:gap-14">
         <div>
-          <div className="relative h-[339px] md:h-auto md:aspect-[4/5] rounded-r overflow-hidden">
+          <div className="relative h-[339px] md:h-auto md:aspect-[4/5] rounded-ui overflow-hidden">
             <ProductImage src={photos[thumb] ?? product.photos?.[0]} alt={product.name} className="absolute inset-0" />
             <div className="absolute top-4 left-4 md:top-6 md:left-6 flex gap-2">
               <Chip variant="dark">{product.promotion ? "Promoção" : "Disponível"}</Chip>
@@ -111,7 +111,7 @@ export function ProductDetail({ product, related }: { product: Product; related:
                 type="button"
                 aria-label="Ver foto"
                 onClick={() => setThumb(i)}
-                className="relative w-[76px] h-[76px] md:w-24 md:h-24 rounded-r overflow-hidden transition-transform active:scale-[.95]"
+                className="relative w-[76px] h-[76px] md:w-24 md:h-24 rounded-ui overflow-hidden transition-transform active:scale-[.95]"
               >
                 <ProductImage src={src} alt="" className="absolute inset-0" />
                 {thumb !== i ? <span className="absolute inset-0 bg-paper-50" /> : null}

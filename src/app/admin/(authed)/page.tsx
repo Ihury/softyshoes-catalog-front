@@ -112,7 +112,7 @@ export default async function AdminListPage({
       <div className="md:hidden fixed left-0 right-0 bottom-0 px-6 py-4 flex justify-center pointer-events-none">
         <Link
           href="/admin/produtos/novo"
-          className="pointer-events-auto h-10 min-w-[116px] px-3 rounded-r bg-[rgba(9,9,9,0.5)] backdrop-blur-[20px] text-paper text-sm font-normal flex items-center justify-center transition-[background-color,transform] hover:bg-ink active:scale-[.97]"
+          className="pointer-events-auto h-10 min-w-[116px] px-3 rounded-ui bg-[rgba(9,9,9,0.5)] backdrop-blur-[20px] text-paper text-sm font-normal flex items-center justify-center transition-[background-color,transform] hover:bg-ink active:scale-[.97]"
         >
           Novo modelo
         </Link>

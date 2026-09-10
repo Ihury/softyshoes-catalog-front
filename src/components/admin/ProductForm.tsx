@@ -73,25 +73,25 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
         <div className="hidden md:flex gap-3">
           <button
             type="submit"
-            className="h-10 min-w-[116px] px-3 rounded-r bg-ink text-paper text-sm font-normal transition-opacity hover:opacity-[.86] active:scale-[.98]"
+            className="h-10 min-w-[116px] px-3 rounded-ui bg-ink text-paper text-sm font-normal transition-opacity hover:opacity-[.86] active:scale-[.98]"
           >
             Salvar alterações
           </button>
           <Link
             href="/admin"
-            className="h-10 min-w-[116px] px-3 rounded-r border border-ink-10 bg-paper-50 backdrop-blur-[20px] text-ink-50 text-sm flex items-center justify-center transition-transform active:scale-[.98]"
+            className="h-10 min-w-[116px] px-3 rounded-ui border border-ink-10 bg-paper-50 backdrop-blur-[20px] text-ink-50 text-sm flex items-center justify-center transition-transform active:scale-[.98]"
           >
             Voltar
           </Link>
         </div>
       </div>
 
-      <div className="mt-3 relative h-[223px] md:h-[280px] rounded-r overflow-hidden">
+      <div className="mt-3 relative h-[223px] md:h-[280px] rounded-ui overflow-hidden">
         <ProductImage src={photos[0]} alt="" className="absolute inset-0" />
       </div>
       <div className="mt-3 flex gap-3">
         {[1, 2].map((i) => (
-          <div key={i} className="relative w-[76px] h-[76px] rounded-r overflow-hidden">
+          <div key={i} className="relative w-[76px] h-[76px] rounded-ui overflow-hidden">
             <ProductImage src={photos[i]} alt="" className="absolute inset-0" />
           </div>
         ))}
@@ -100,7 +100,7 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
             type="button"
             disabled={uploading}
             onClick={() => fileInput.current?.click()}
-            className="w-[76px] h-[76px] border border-ink-10 rounded-r flex items-center justify-center text-ink-50 transition-colors hover:text-ink hover:border-ink-25 disabled:opacity-40"
+            className="w-[76px] h-[76px] border border-ink-10 rounded-ui flex items-center justify-center text-ink-50 transition-colors hover:text-ink hover:border-ink-25 disabled:opacity-40"
           >
             <IconPlus />
           </button>
@@ -119,7 +119,7 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
             defaultValue={product?.name}
             onChange={() => setNameError(false)}
             placeholder="Adidas Samba OG"
-            className="h-10 px-4 border border-ink-10 rounded-r bg-paper text-sm text-ink outline-none transition-colors focus:border-ink-25"
+            className="h-10 px-4 border border-ink-10 rounded-ui bg-paper text-sm text-ink outline-none transition-colors focus:border-ink-25"
           />
         </label>
         {nameError ? <div className="text-xs text-ink">Informe o nome do modelo.</div> : null}
@@ -136,8 +136,8 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
                   onClick={() => setBrandId(b.id)}
                   className={
                     on
-                      ? "h-10 min-w-[116px] px-3 rounded-r bg-ink text-paper text-sm font-normal transition-transform active:scale-[.97]"
-                      : "h-10 min-w-[116px] px-3 rounded-r border border-ink-10 bg-paper text-ink-50 text-sm transition-colors hover:border-ink-25 hover:text-ink"
+                      ? "h-10 min-w-[116px] px-3 rounded-ui bg-ink text-paper text-sm font-normal transition-transform active:scale-[.97]"
+                      : "h-10 min-w-[116px] px-3 rounded-ui border border-ink-10 bg-paper text-ink-50 text-sm transition-colors hover:border-ink-25 hover:text-ink"
                   }
                 >
                   {b.name}
@@ -157,7 +157,7 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
               onChange={() => setPriceError(false)}
               placeholder="749,00"
               inputMode="decimal"
-              className="h-10 px-4 border border-ink-10 rounded-r bg-paper text-sm text-ink outline-none transition-colors focus:border-ink-25"
+              className="h-10 px-4 border border-ink-10 rounded-ui bg-paper text-sm text-ink outline-none transition-colors focus:border-ink-25"
             />
           </label>
           <label className="flex-1 min-w-0 flex flex-col gap-2">
@@ -167,7 +167,7 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
               defaultValue={product?.old_price ?? ""}
               placeholder="949,00"
               inputMode="decimal"
-              className="h-10 px-4 border border-ink-10 rounded-r bg-paper text-sm text-ink outline-none transition-colors focus:border-ink-25"
+              className="h-10 px-4 border border-ink-10 rounded-ui bg-paper text-sm text-ink outline-none transition-colors focus:border-ink-25"
             />
           </label>
         </div>
@@ -180,7 +180,7 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
             defaultValue={product?.description}
             rows={4}
             placeholder="Cabedal em couro. Solado de borracha vulcanizada."
-            className="px-4 py-3 border border-ink-10 rounded-r bg-paper text-xs leading-[1.65] text-ink outline-none resize-none transition-colors focus:border-ink-25"
+            className="px-4 py-3 border border-ink-10 rounded-ui bg-paper text-xs leading-[1.65] text-ink outline-none resize-none transition-colors focus:border-ink-25"
           />
         </label>
         <label className="flex flex-col gap-2">
@@ -190,7 +190,7 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
             defaultValue={product?.spec}
             rows={3}
             placeholder="Palmilha fixa em EVA. Forro têxtil."
-            className="px-4 py-3 border border-ink-10 rounded-r bg-paper text-xs leading-[1.65] text-ink outline-none resize-none transition-colors focus:border-ink-25"
+            className="px-4 py-3 border border-ink-10 rounded-ui bg-paper text-xs leading-[1.65] text-ink outline-none resize-none transition-colors focus:border-ink-25"
           />
         </label>
       </div>
@@ -246,13 +246,13 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
       <div className="md:hidden fixed left-0 right-0 bottom-0 px-6 py-4 flex gap-3 pointer-events-none">
         <button
           type="submit"
-          className="pointer-events-auto flex-1 h-10 rounded-r bg-[rgba(9,9,9,0.5)] backdrop-blur-[20px] text-paper text-sm font-normal transition-[background-color,transform] hover:bg-ink active:scale-[.98]"
+          className="pointer-events-auto flex-1 h-10 rounded-ui bg-[rgba(9,9,9,0.5)] backdrop-blur-[20px] text-paper text-sm font-normal transition-[background-color,transform] hover:bg-ink active:scale-[.98]"
         >
           Salvar alterações
         </button>
         <Link
           href="/admin"
-          className="pointer-events-auto flex-none min-w-[116px] px-3 h-10 rounded-r border border-ink-10 bg-paper-50 backdrop-blur-[20px] text-ink-50 text-sm flex items-center justify-center transition-transform active:scale-[.98]"
+          className="pointer-events-auto flex-none min-w-[116px] px-3 h-10 rounded-ui border border-ink-10 bg-paper-50 backdrop-blur-[20px] text-ink-50 text-sm flex items-center justify-center transition-transform active:scale-[.98]"
         >
           Voltar
         </Link>

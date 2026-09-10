@@ -23,7 +23,7 @@ export function SizeSelectGrid({
           return (
             <span
               key={n}
-              className="h-10 rounded-r bg-ink-10 flex items-center justify-center text-sm text-ink-25"
+              className="h-10 rounded-ui bg-ink-10 flex items-center justify-center text-sm text-ink-25"
             >
               {n}
             </span>
@@ -36,8 +36,8 @@ export function SizeSelectGrid({
             onClick={() => onSelect(n)}
             className={
               isSelected
-                ? "h-10 rounded-r bg-ink text-paper flex items-center justify-center text-sm font-normal transition-transform active:scale-[.94]"
-                : "h-10 rounded-r bg-paper border border-ink-10 text-ink flex items-center justify-center text-sm transition-[border-color,transform] hover:border-ink-25 active:scale-[.94]"
+                ? "h-10 rounded-ui bg-ink text-paper flex items-center justify-center text-sm font-normal transition-transform active:scale-[.94]"
+                : "h-10 rounded-ui bg-paper border border-ink-10 text-ink flex items-center justify-center text-sm transition-[border-color,transform] hover:border-ink-25 active:scale-[.94]"
             }
           >
             {n}
@@ -69,8 +69,8 @@ export function SizeToggleGrid({
             onClick={() => onToggle(n)}
             className={
               on
-                ? "h-10 rounded-r bg-ink text-paper flex items-center justify-center text-sm font-normal transition-transform active:scale-[.94]"
-                : "h-10 rounded-r bg-paper border border-ink-10 text-ink-25 flex items-center justify-center text-sm transition-[border-color,color,transform] hover:border-ink-25 hover:text-ink-50 active:scale-[.94]"
+                ? "h-10 rounded-ui bg-ink text-paper flex items-center justify-center text-sm font-normal transition-transform active:scale-[.94]"
+                : "h-10 rounded-ui bg-paper border border-ink-10 text-ink-25 flex items-center justify-center text-sm transition-[border-color,color,transform] hover:border-ink-25 hover:text-ink-50 active:scale-[.94]"
             }
           >
             {n}

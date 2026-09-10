@@ -15,7 +15,7 @@ export function FilterTabs({
 }) {
   return (
     <div
-      className={`h-10 bg-ink rounded-r flex items-center ${inline ? "inline-flex" : ""} ${className}`}
+      className={`h-10 bg-ink rounded-ui flex items-center ${inline ? "inline-flex" : ""} ${className}`}
     >
       {TABS.map((label) => {
         const on = active === label;
@@ -24,7 +24,7 @@ export function FilterTabs({
             key={label}
             type="button"
             onClick={() => onChange(label)}
-            className={`h-10 ${inline ? "min-w-[116px] px-3" : "flex-1"} rounded-r text-xs whitespace-nowrap transition-colors duration-200 ${
+            className={`h-10 ${inline ? "min-w-[116px] px-3" : "flex-1"} rounded-ui text-xs whitespace-nowrap transition-colors duration-200 ${
               on ? "text-paper font-normal" : "text-paper-50"
             }`}
           >

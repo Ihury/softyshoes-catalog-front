@@ -59,7 +59,7 @@
   --font-sans: var(--font-inst, "PP Neue Montreal", "Neue Montreal", Helvetica,
     "Helvetica Neue", Arial, sans-serif);
 
-  --radius-r: var(--r);
+  --radius-ui: var(--r);
 
   --spacing-1: var(--sp-1);
   --spacing-2: var(--sp-2);

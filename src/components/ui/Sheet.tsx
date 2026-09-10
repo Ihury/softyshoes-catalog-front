@@ -33,7 +33,7 @@ export function Sheet({
         style={{ animation: "sfFade .2s ease both" }}
       />
       <div
-        className={`sheet-panel relative bg-paper w-full md:w-[360px] rounded-t-r md:rounded-r px-6 py-5 md:p-6 ${panelClassName}`}
+        className={`sheet-panel relative bg-paper w-full md:w-[360px] rounded-t-ui md:rounded-ui px-6 py-5 md:p-6 ${panelClassName}`}
       >
         {children}
       </div>

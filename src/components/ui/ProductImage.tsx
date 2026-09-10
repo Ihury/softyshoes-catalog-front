@@ -12,7 +12,7 @@ export function ProductImage({
   sizes?: string;
 }) {
   return (
-    <div className={`relative overflow-hidden rounded-r bg-ink-10 ${className}`}>
+    <div className={`relative overflow-hidden rounded-ui bg-ink-10 ${className}`}>
       {src ? (
         <Image src={src} alt={alt} fill sizes={sizes ?? "50vw"} className="object-cover" />
       ) : null}

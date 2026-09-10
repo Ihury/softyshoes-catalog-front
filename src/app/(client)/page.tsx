@@ -44,7 +44,7 @@ export default async function HomePage({
       {featured ? (
         <Link
           href={`/produto/${featured.id}`}
-          className="block w-full text-left relative h-[223px] md:h-[440px] rounded-r md:rounded-none overflow-hidden transition-transform duration-200 active:scale-[.985]"
+          className="block w-full text-left relative h-[223px] md:h-[440px] rounded-ui md:rounded-none overflow-hidden transition-transform duration-200 active:scale-[.985]"
           style={{ animation: "sfUp .6s cubic-bezier(.22,1,.36,1) both" }}
         >
           <ProductImage src={featured.photos?.[0]} alt={featured.name} className="absolute inset-0" />
@@ -52,7 +52,7 @@ export default async function HomePage({
             <Chip variant="dark">Destaque</Chip>
             <Chip variant="mid">Uso diário</Chip>
           </div>
-          <div className="absolute left-4 right-4 bottom-4 md:left-6 md:right-auto md:bottom-6 md:max-w-[420px] px-3 py-2 bg-paper-50 backdrop-blur-[20px] rounded-r flex items-center gap-3 md:gap-4">
+          <div className="absolute left-4 right-4 bottom-4 md:left-6 md:right-auto md:bottom-6 md:max-w-[420px] px-3 py-2 bg-paper-50 backdrop-blur-[20px] rounded-ui flex items-center gap-3 md:gap-4">
             <div className="flex-1 min-w-0 flex flex-col gap-1">
               <div className="text-sm font-normal text-ink whitespace-nowrap overflow-hidden text-ellipsis">
                 {featured.name}

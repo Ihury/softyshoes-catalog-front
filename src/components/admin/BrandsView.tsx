@@ -40,7 +40,7 @@ export function BrandsView({ rows }: { rows: Row[] }) {
             </div>
             <Link
               href={`/admin?brand=${encodeURIComponent(b.name)}`}
-              className="flex-none h-10 min-w-[116px] px-3 rounded-r border border-ink-10 text-xs text-ink-50 flex items-center justify-center transition-colors hover:text-ink hover:border-ink-25"
+              className="flex-none h-10 min-w-[116px] px-3 rounded-ui border border-ink-10 text-xs text-ink-50 flex items-center justify-center transition-colors hover:text-ink hover:border-ink-25"
             >
               Ver modelos
             </Link>
@@ -74,13 +74,13 @@ export function BrandsView({ rows }: { rows: Row[] }) {
           }}
           placeholder="Nova marca"
           aria-label="Nova marca"
-          className="flex-1 min-w-0 h-10 px-4 border border-ink-10 rounded-r bg-paper text-sm text-ink outline-none transition-colors focus:border-ink-25"
+          className="flex-1 min-w-0 h-10 px-4 border border-ink-10 rounded-ui bg-paper text-sm text-ink outline-none transition-colors focus:border-ink-25"
         />
         <button
           type="button"
           disabled={pending}
           onClick={onAdd}
-          className="flex-none h-10 min-w-[116px] px-3 rounded-r bg-ink text-paper text-sm font-normal transition-opacity hover:opacity-[.86] active:scale-[.97] disabled:opacity-40"
+          className="flex-none h-10 min-w-[116px] px-3 rounded-ui bg-ink text-paper text-sm font-normal transition-opacity hover:opacity-[.86] active:scale-[.97] disabled:opacity-40"
         >
           Adicionar
         </button>

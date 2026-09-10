@@ -55,12 +55,12 @@ export function CatalogControls({
           }}
           placeholder="Buscar modelo"
           aria-label="Buscar modelo"
-          className="flex-1 min-w-0 h-10 px-4 border border-ink-10 rounded-r bg-paper text-sm text-ink outline-none transition-colors focus:border-ink-25"
+          className="flex-1 min-w-0 h-10 px-4 border border-ink-10 rounded-ui bg-paper text-sm text-ink outline-none transition-colors focus:border-ink-25"
         />
         <button
           type="button"
           onClick={() => setBrandOpen(true)}
-          className="flex-none h-10 min-w-[116px] px-3 rounded-r bg-ink text-paper text-sm flex items-center justify-center gap-2 transition-opacity hover:opacity-[.86] active:scale-[.96]"
+          className="flex-none h-10 min-w-[116px] px-3 rounded-ui bg-ink text-paper text-sm flex items-center justify-center gap-2 transition-opacity hover:opacity-[.86] active:scale-[.96]"
         >
           <span>{activeBrand === "Todas" ? "Marca" : activeBrand}</span>
           <IconChevronDown stroke="#FAFAFA" />
