@@ -18,8 +18,14 @@ export function ProductCard({
   const delay = (0.05 * Math.min(delayStep, 7)).toFixed(2) + "s";
   return (
     <div style={{ animation: "sfUp .6s cubic-bezier(.22,1,.36,1) both", animationDelay: delay }} className={className}>
+      {/* The detail route is dynamic, so the default "auto" prefetch would only
+          fetch up to a loading boundary — of which there is none — and the tap
+          would then wait on the round-trip. Prefetching in full means the page
+          is already in the router cache by the time it is tapped. Next only
+          does this for links in the viewport, so it stays bounded. */}
       <Link
         href={`/produto/${product.id}`}
+        prefetch
         className="w-full flex flex-col gap-3 text-left transition-transform duration-200 active:scale-[.98]"
       >
         <div className="relative w-full">

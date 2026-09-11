@@ -33,6 +33,7 @@ export default async function HomePage({
       {featured ? (
         <Link
           href={`/produto/${featured.id}`}
+          prefetch
           className="block w-full text-left relative h-[223px] md:h-[440px] rounded-ui md:rounded-none overflow-hidden transition-transform duration-200 active:scale-[.985]"
           style={{ animation: "sfUp .6s cubic-bezier(.22,1,.36,1) both" }}
         >

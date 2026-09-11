@@ -2,13 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { IconPlus } from "@/components/icons";
+import { IconClose, IconPlus } from "@/components/icons";
 import { ProductImage } from "@/components/ui/ProductImage";
 import { SizeToggleGrid } from "@/components/ui/SizeGrid";
 import { useToast } from "@/components/ui/Toast";
 import { saveProduct, deleteProduct } from "@/lib/actions";
 import { uploadPhoto } from "@/lib/upload";
 import type { Brand, Product } from "@/lib/types";
+
+/** Upper bound on photos per model. Generous on purpose — it exists to stop a
+ *  runaway paste, not to ration what a model can show. */
+const MAX_PHOTOS = 15;
 
 const FLAGS: { key: keyof Pick<Product, "promotion" | "available" | "featured" | "ordered">; label: string }[] = [
   { key: "promotion", label: "Promoção" },
@@ -18,35 +22,73 @@ const FLAGS: { key: keyof Pick<Product, "promotion" | "available" | "featured" |
 ];
 
 /**
- * One photo slot. A freshly picked file is still a local `blob:` URL, which the
- * Next image optimizer cannot fetch, so it renders through a plain <img> and
- * carries the handoff's 1px progress bar until the upload lands.
+ * Resolves once the browser has the image ready to paint (or gave up on it).
+ * Used to hand the slot straight from the local preview to the stored file
+ * with no empty frame in between.
  */
-function PhotoSlot({
+function preloadImage(url: string) {
+  return new Promise<void>((resolve) => {
+    const img = new window.Image();
+    img.onload = () => resolve();
+    img.onerror = () => resolve();
+    img.src = url;
+    // Never let a slow asset hold the form hostage.
+    setTimeout(resolve, 4000);
+  });
+}
+
+/**
+ * One photo in the edit screen.
+ *
+ * A freshly picked file is still a local `blob:` URL, which the Next image
+ * optimizer cannot fetch, so it renders through a plain <img> and carries the
+ * handoff's 1px progress bar until the upload lands. Unlike the catalog there
+ * is no grey placeholder here — an empty slot simply is not drawn.
+ */
+function Photo({
   src,
   pending,
   sizes,
+  onRemove,
+  label,
 }: {
-  src?: string;
+  src: string;
   pending: string | null;
   sizes: string;
+  onRemove?: () => void;
+  label: string;
 }) {
-  const isPending = !!src && src === pending;
-  if (isPending) {
-    return (
-      <div className="absolute inset-0 overflow-hidden rounded-ui bg-ink-10">
-        {/* eslint-disable-next-line @next/next/no-img-element -- local blob preview, not an optimizable asset */}
-        <img src={src} alt="" className="w-full h-full object-cover opacity-65" />
-        <div className="absolute left-0 right-0 bottom-0 h-px overflow-hidden bg-ink-03">
-          <div
-            className="w-[30%] h-full bg-ink-25"
-            style={{ animation: "sfBar 1.1s cubic-bezier(.5,0,.5,1) infinite" }}
-          />
-        </div>
-      </div>
-    );
-  }
-  return <ProductImage src={src} alt="" className="absolute inset-0" sizes={sizes} />;
+  const isPending = src === pending;
+  return (
+    <>
+      {isPending ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element -- local blob preview, not an optimizable asset */}
+          <img src={src} alt="" className="absolute inset-0 w-full h-full object-cover opacity-65" />
+          <div className="absolute left-0 right-0 bottom-0 h-px overflow-hidden bg-ink-03">
+            <div
+              className="w-[30%] h-full bg-ink-25"
+              style={{ animation: "sfBar 1.1s cubic-bezier(.5,0,.5,1) infinite" }}
+            />
+          </div>
+        </>
+      ) : (
+        <ProductImage src={src} alt="" className="absolute inset-0" sizes={sizes} />
+      )}
+      {onRemove && !isPending ? (
+        // Always visible rather than hover-only: on a phone there is no hover.
+        // Glass chip with the standard 4px radius, never a circle.
+        <button
+          type="button"
+          aria-label={`Remover ${label}`}
+          onClick={onRemove}
+          className="absolute top-1 right-1 w-7 h-7 rounded-ui bg-paper-50 backdrop-blur-[14px] flex items-center justify-center text-ink-50 transition-colors hover:text-ink"
+        >
+          <IconClose />
+        </button>
+      ) : null}
+    </>
+  );
 }
 
 export function ProductForm({ product, brands }: { product: Product | null; brands: Brand[] }) {
@@ -76,29 +118,51 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
   }, [pending]);
 
   async function onFilePicked(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+    const picked = Array.from(e.target.files ?? []);
     e.target.value = "";
-    if (!file) return;
+    if (picked.length === 0) return;
 
-    // Paint the chosen photo immediately from the local file — the admin sees
-    // it in the slot right away instead of staring at an empty tile until the
-    // network answers.
-    const preview = URL.createObjectURL(file);
-    setPending(preview);
-
-    const { url, error } = await uploadPhoto(file);
-
-    URL.revokeObjectURL(preview);
-    setPending(null);
-    if (error || !url) {
-      flash(error ?? "Não foi possível enviar a foto.");
+    const room = MAX_PHOTOS - photos.length;
+    if (room <= 0) {
+      flash(`Máximo de ${MAX_PHOTOS} fotos por modelo.`);
       return;
     }
-    setPhotos((prev) => prev.concat(url).slice(0, 3));
+    const files = picked.slice(0, room);
+    if (picked.length > room) flash(`Só cabem mais ${room} foto${room === 1 ? "" : "s"}.`);
+
+    // One at a time so each photo lands in its own slot, with the local file
+    // painted immediately — the admin watches them fill in instead of staring
+    // at empty tiles until the network answers.
+    for (const file of files) {
+      const preview = URL.createObjectURL(file);
+      setPending(preview);
+
+      const { url, error } = await uploadPhoto(file);
+
+      if (error || !url) {
+        URL.revokeObjectURL(preview);
+        setPending(null);
+        flash(error ?? "Não foi possível enviar a foto.");
+        return;
+      }
+
+      // Wait for the stored image to be decodable before swapping the local
+      // preview out. Without this the slot goes preview -> empty -> image,
+      // because the freshly uploaded URL still has to be fetched.
+      await preloadImage(url);
+
+      setPhotos((prev) => prev.concat(url).slice(0, MAX_PHOTOS));
+      setPending(null);
+      URL.revokeObjectURL(preview);
+    }
+  }
+
+  function removePhoto(url: string) {
+    setPhotos((prev) => prev.filter((u) => u !== url));
   }
 
   // The optimistic preview occupies the next free slot while it uploads.
-  const shownPhotos = pending ? photos.concat(pending).slice(0, 3) : photos;
+  const shownPhotos = pending ? photos.concat(pending).slice(0, MAX_PHOTOS) : photos;
 
   return (
     <form
@@ -140,17 +204,37 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
       {/* Desktop splits into photos | fields, as in the handoff; mobile stacks. */}
       <div className="mt-3 md:mt-6 md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] md:gap-14">
       <div>
-      <div className="hidden md:block text-xs text-ink-50 mb-3">Fotos</div>
-      <div className="relative h-[223px] md:h-auto md:aspect-[4/3] rounded-ui overflow-hidden">
-        <PhotoSlot src={shownPhotos[0]} pending={pending} sizes="(min-width: 768px) 560px, 100vw" />
-      </div>
-      <div className="mt-3 flex gap-3">
-        {[1, 2].map((i) => (
-          <div key={i} className="relative w-[76px] h-[76px] rounded-ui overflow-hidden">
-            <PhotoSlot src={shownPhotos[i]} pending={pending} sizes="76px" />
+      <div className="text-xs text-ink-50">Fotos</div>
+
+      {/* No grey placeholder here: an empty model shows just the add button.
+          The ink-10 rectangle is a catalog device for holding layout, and in
+          the editor it only reads as a broken image. */}
+      {shownPhotos.length > 0 ? (
+        <div className="mt-3 relative h-[223px] md:h-auto md:aspect-[4/3] rounded-ui overflow-hidden">
+          <Photo
+            src={shownPhotos[0]}
+            pending={pending}
+            sizes="(min-width: 768px) 560px, 100vw"
+            label="foto de capa"
+            onRemove={() => removePhoto(shownPhotos[0])}
+          />
+        </div>
+      ) : null}
+
+      {/* Wraps rather than scrolls: the row grows down as photos are added. */}
+      <div className="mt-3 flex flex-wrap gap-3">
+        {shownPhotos.slice(1).map((src, i) => (
+          <div key={src} className="relative w-[76px] h-[76px] rounded-ui overflow-hidden">
+            <Photo
+              src={src}
+              pending={pending}
+              sizes="76px"
+              label={`foto ${i + 2}`}
+              onRemove={() => removePhoto(src)}
+            />
           </div>
         ))}
-        {shownPhotos.length < 3 ? (
+        {shownPhotos.length < MAX_PHOTOS ? (
           <button
             type="button"
             disabled={uploading}
@@ -160,7 +244,19 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
             <IconPlus />
           </button>
         ) : null}
-        <input ref={fileInput} type="file" accept="image/*" className="hidden" onChange={onFilePicked} />
+        <input
+          ref={fileInput}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={onFilePicked}
+        />
+      </div>
+      <div className="mt-2 text-xs text-ink-25">
+        {shownPhotos.length === 0
+          ? `Nenhuma foto ainda. Até ${MAX_PHOTOS}.`
+          : `${shownPhotos.length}/${MAX_PHOTOS} fotos. A primeira é a capa do modelo.`}
       </div>
       {photos.map((url) => (
         <input key={url} type="hidden" name="photos" value={url} />

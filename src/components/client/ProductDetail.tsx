@@ -110,12 +110,16 @@ export function ProductDetail({ product, related }: { product: Product; related:
             </button>
           </div>
 
-          <div className="mt-3 flex gap-3">
-            {photos.slice(0, 2).map((src, i) => (
+          {/* The handoff drew two thumbnails for a three-photo model; a model
+              can now carry up to fifteen, so the row wraps instead of cutting
+              the rest off. */}
+          <div className="mt-3 flex flex-wrap gap-3">
+            {photos.map((src, i) => (
               <button
                 key={i}
                 type="button"
-                aria-label="Ver foto"
+                aria-label={`Ver foto ${i + 1}`}
+                aria-pressed={thumb === i}
                 onClick={() => setThumb(i)}
                 className="relative w-[76px] h-[76px] md:w-24 md:h-24 rounded-ui overflow-hidden transition-transform active:scale-[.95]"
               >

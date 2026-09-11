@@ -87,3 +87,12 @@ export function IconCart({ className, size = 16 }: IconProps) {
     </svg>
   );
 }
+
+/** Close / remove, on the same 16×16 grid as the rest. */
+export function IconClose({ className, size = 16 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true" className={className}>
+      <path d="M3.6 3.6l8.8 8.8M12.4 3.6l-8.8 8.8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
