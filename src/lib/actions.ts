@@ -37,6 +37,19 @@ export async function signOut() {
   redirect("/admin/login");
 }
 
+/**
+ * Refreshes the prerendered storefront after a catalog write.
+ *
+ * Clearing the data-cache tag is not enough on its own any more: `/` and
+ * `/produto/[id]` are prerendered, so without this an admin save would keep
+ * serving the old HTML until the revalidate window expired — the seller would
+ * edit a model and not see it on the site for five minutes. `layout` covers
+ * every page under the storefront tree, the product pages included.
+ */
+function revalidateStorefront() {
+  revalidatePath("/", "layout");
+}
+
 // ---------- Brands ----------
 
 export async function createBrand(name: string) {
@@ -53,6 +66,7 @@ export async function createBrand(name: string) {
   if (error) return { error: error.message };
   revalidateTag(BRANDS_TAG, { expire: 0 });
   revalidateTag(CATALOG_TAG, { expire: 0 });
+  revalidateStorefront();
   revalidatePath("/admin/marcas");
   revalidatePath("/admin");
   return { error: null };
@@ -64,6 +78,7 @@ export async function deleteBrand(id: string) {
   if (error) return { error: error.message };
   revalidateTag(BRANDS_TAG, { expire: 0 });
   revalidateTag(CATALOG_TAG, { expire: 0 });
+  revalidateStorefront();
   revalidatePath("/admin/marcas");
   revalidatePath("/admin");
   return { error: null };
@@ -125,6 +140,7 @@ export async function saveProduct(productId: string | null, formData: FormData) 
   }
 
   revalidateTag(CATALOG_TAG, { expire: 0 });
+  revalidateStorefront();
   revalidatePath("/admin");
   redirect("/admin");
 }
@@ -134,6 +150,7 @@ export async function deleteProduct(productId: string) {
   const { error } = await supabase.from("products").delete().eq("id", productId);
   if (error) return { error: error.message };
   revalidateTag(CATALOG_TAG, { expire: 0 });
+  revalidateStorefront();
   revalidatePath("/admin");
   redirect("/admin");
 }
@@ -158,6 +175,7 @@ export async function saveSellerSettings(formData: FormData) {
     .eq("id", 1);
   if (error) return { error: error.message };
   revalidateTag(SELLER_TAG, { expire: 0 });
+  revalidateStorefront();
   revalidatePath("/admin/vendedor");
   return { error: null };
 }
