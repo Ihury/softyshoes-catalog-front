@@ -10,6 +10,7 @@ import { signOut } from "@/lib/actions";
 const NAV = [
   { href: "/admin", label: "Catálogo" },
   { href: "/admin/marcas", label: "Marcas" },
+  { href: "/admin/tags", label: "Tags" },
   { href: "/admin/vendedor", label: "Contato do vendedor" },
 ];
 

@@ -8,7 +8,8 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { parseMoney } from "@/lib/format";
-import { BRANDS_TAG, CATALOG_TAG, SELLER_TAG } from "@/lib/cache-tags";
+import { BRANDS_TAG, CATALOG_TAG, SELLER_TAG, TAGS_TAG } from "@/lib/cache-tags";
+import { asList } from "@/lib/types";
 import type { OrderItem } from "@/lib/types";
 
 // ---------- Auth ----------
@@ -84,6 +85,93 @@ export async function deleteBrand(id: string) {
   return { error: null };
 }
 
+// ---------- Tags ----------
+
+/**
+ * Seller-defined filters. These are what the storefront's tab bar is built
+ * from, so every write here has to clear the storefront as well as the tag
+ * list itself.
+ */
+export async function createTag(name: string) {
+  const trimmed = name.trim();
+  if (trimmed.length < 2) return { error: "Informe o nome da tag." };
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("tags")
+    .select("id")
+    .ilike("name", trimmed)
+    .maybeSingle();
+  if (existing) return { error: "Tag já cadastrada." };
+
+  // New tags land at the end of the bar rather than jumping to the front.
+  // The max is taken here rather than with order+limit: there are only ever a
+  // handful of tags, and this cannot be thrown off by how ties are ordered.
+  const { data: rows } = await supabase.from("tags").select("position");
+  const position =
+    asList<{ position: number }>(rows).reduce((max, r) => Math.max(max, r.position ?? 0), 0) + 1;
+
+  const { error } = await supabase.from("tags").insert({ name: trimmed, position });
+  if (error) return { error: error.message };
+  afterTagWrite();
+  return { error: null };
+}
+
+export async function renameTag(id: string, name: string) {
+  const trimmed = name.trim();
+  if (trimmed.length < 2) return { error: "Informe o nome da tag." };
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("tags")
+    .select("id")
+    .ilike("name", trimmed)
+    .neq("id", id)
+    .maybeSingle();
+  if (existing) return { error: "Já existe uma tag com esse nome." };
+  const { error } = await supabase.from("tags").update({ name: trimmed }).eq("id", id);
+  if (error) return { error: error.message };
+  afterTagWrite();
+  return { error: null };
+}
+
+/** Removing a tag unlinks it from every model — `product_tags` cascades — but
+ *  never touches the models themselves. */
+export async function deleteTag(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("tags").delete().eq("id", id);
+  if (error) return { error: error.message };
+  afterTagWrite();
+  return { error: null };
+}
+
+/** Swaps a tag with its neighbour so the seller can order the tab bar. */
+export async function moveTag(id: string, direction: "up" | "down") {
+  const supabase = await createClient();
+  const { data } = await supabase.from("tags").select("id,position").order("position").order("name");
+  const tags = asList<{ id: string; position: number }>(data);
+  const i = tags.findIndex((t) => t.id === id);
+  const j = direction === "up" ? i - 1 : i + 1;
+  if (i < 0 || j < 0 || j >= tags.length) return { error: null };
+
+  // Positions can be duplicated or all zero in old rows, so rewrite the whole
+  // sequence from the reordered list instead of trading two values.
+  const reordered = tags.slice();
+  [reordered[i], reordered[j]] = [reordered[j], reordered[i]];
+  for (let k = 0; k < reordered.length; k++) {
+    const { error } = await supabase.from("tags").update({ position: k + 1 }).eq("id", reordered[k].id);
+    if (error) return { error: error.message };
+  }
+  afterTagWrite();
+  return { error: null };
+}
+
+function afterTagWrite() {
+  revalidateTag(TAGS_TAG, { expire: 0 });
+  revalidateTag(CATALOG_TAG, { expire: 0 });
+  revalidateStorefront();
+  revalidatePath("/admin/tags");
+  revalidatePath("/admin");
+}
+
 // ---------- Products ----------
 
 export type ProductFormState = { error: string | null };
@@ -131,19 +219,104 @@ export async function saveProduct(productId: string | null, formData: FormData) 
     await supabase.from("products").update({ featured: false }).eq("featured", true);
   }
 
+  let savedId = productId;
   if (productId) {
     const { error } = await supabase.from("products").update(record).eq("id", productId);
     if (error) return { error: error.message };
   } else {
-    const { error } = await supabase.from("products").insert(record);
-    if (error) return { error: error.message };
+    // The id comes back from the insert because the tags and colours below are
+    // separate rows that have to point at it.
+    const { data, error } = await supabase.from("products").insert(record).select("id").single();
+    if (error || !data) return { error: error?.message ?? "Não foi possível salvar o modelo." };
+    savedId = data.id as string;
   }
+
+  const linked = await replaceTags(savedId!, formData.getAll("tags").map(String).filter(Boolean));
+  if (linked) return { error: linked };
+  const coloured = await replaceColors(savedId!, parseColors(formData.get("colors")));
+  if (coloured) return { error: coloured };
 
   revalidateTag(CATALOG_TAG, { expire: 0 });
   revalidateStorefront();
   revalidatePath("/admin");
   redirect("/admin");
 }
+
+/**
+ * Rewrites a model's tag links from scratch.
+ *
+ * The form always submits the complete set, so replacing is both simpler and
+ * more predictable than diffing — and the join table holds nothing but the two
+ * ids, so there is nothing to preserve across the swap.
+ */
+async function replaceTags(productId: string, tagIds: string[]): Promise<string | null> {
+  const supabase = await createClient();
+  const { error: cleared } = await supabase
+    .from("product_tags")
+    .delete()
+    .eq("product_id", productId);
+  if (cleared) return cleared.message;
+  if (tagIds.length === 0) return null;
+  const { error } = await supabase
+    .from("product_tags")
+    .insert(tagIds.map((tag_id) => ({ product_id: productId, tag_id })));
+  return error ? error.message : null;
+}
+
+/**
+ * Same wholesale replacement for colourways.
+ *
+ * Safe to recreate the rows because nothing points at a colour by id — a cart
+ * line and an order both record the colour's *name*, so a shopper's basket
+ * survives the seller re-saving the model.
+ */
+async function replaceColors(
+  productId: string,
+  colors: { name: string; photos: string[] }[]
+): Promise<string | null> {
+  const supabase = await createClient();
+  const { error: cleared } = await supabase
+    .from("product_colors")
+    .delete()
+    .eq("product_id", productId);
+  if (cleared) return cleared.message;
+  if (colors.length === 0) return null;
+  const { error } = await supabase.from("product_colors").insert(
+    colors.map((c, i) => ({
+      product_id: productId,
+      name: c.name,
+      photos: c.photos,
+      position: i,
+    }))
+  );
+  return error ? error.message : null;
+}
+
+/**
+ * Reads the colour list the form serialized into a single field.
+ *
+ * Colours are a nested list of lists, which flat form fields cannot express, so
+ * the editor sends JSON. Anything malformed is treated as "no colours" rather
+ * than throwing: a bad payload must not be able to wipe a model's save.
+ */
+function parseColors(raw: FormDataEntryValue | null): { name: string; photos: string[] }[] {
+  if (typeof raw !== "string" || !raw) return [];
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  return asList<{ name?: unknown; photos?: unknown }>(parsed)
+    .map((c) => ({
+      name: String(c.name ?? "").trim(),
+      photos: asList<unknown>(c.photos).map(String).filter(Boolean).slice(0, MAX_COLOR_PHOTOS),
+    }))
+    .filter((c) => c.name.length > 0);
+}
+
+/** Matches the per-model limit in the product form. */
+const MAX_COLOR_PHOTOS = 15;
 
 export async function deleteProduct(productId: string) {
   const supabase = await createClient();

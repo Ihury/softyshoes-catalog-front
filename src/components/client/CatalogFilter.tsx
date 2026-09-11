@@ -1,11 +1,13 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { TABS, type CatalogItem, type Tab } from "@/lib/types";
+import { ALL_TAB, type CatalogItem, type Tag } from "@/lib/types";
 
-export type Filters = { tab: Tab; brand: string; q: string };
+/** `tab` holds a tag name, or ALL_TAB. Names rather than ids keep a shared
+ *  link readable and match what the tab bar shows. */
+export type Filters = { tab: string; brand: string; q: string };
 
-const DEFAULTS: Filters = { tab: "Todos", brand: "Todas", q: "" };
+const DEFAULTS: Filters = { tab: ALL_TAB, brand: "Todas", q: "" };
 
 type CatalogFilter = {
   filters: Filters;
@@ -16,11 +18,13 @@ type CatalogFilter = {
 
 const Ctx = createContext<CatalogFilter | null>(null);
 
-function parse(search: string): Filters {
+function parse(search: string, names: string[]): Filters {
   const p = new URLSearchParams(search);
-  const tab = p.get("tab") as Tab | null;
+  const tab = p.get("tab");
+  // A link to a tag that has since been renamed or deleted falls back to
+  // showing everything, rather than an empty grid with no way out.
   return {
-    tab: tab && TABS.includes(tab) ? tab : "Todos",
+    tab: tab && names.includes(tab) ? tab : ALL_TAB,
     brand: p.get("brand") ?? "Todas",
     q: p.get("q") ?? "",
   };
@@ -28,7 +32,7 @@ function parse(search: string): Filters {
 
 function toQuery({ tab, brand, q }: Filters) {
   const p = new URLSearchParams();
-  if (tab !== "Todos") p.set("tab", tab);
+  if (tab !== ALL_TAB) p.set("tab", tab);
   if (brand && brand !== "Todas") p.set("brand", brand);
   if (q) p.set("q", q);
   const s = p.toString();
@@ -48,15 +52,26 @@ function toQuery({ tab, brand, q }: Filters) {
  * is what keeps the render static. A shared link with a filter therefore paints
  * unfiltered for one frame before settling.
  */
-export function CatalogFilterProvider({ children }: { children: React.ReactNode }) {
+export function CatalogFilterProvider({
+  tags,
+  children,
+}: {
+  tags: Tag[];
+  children: React.ReactNode;
+}) {
   const [filters, setFilters] = useState<Filters>(DEFAULTS);
 
+  // Joined so the effect below depends on the tag names themselves rather than
+  // on a fresh array identity from every server render.
+  const nameKey = tags.map((t) => t.name).join("\u0000");
+
   useEffect(() => {
-    const sync = () => setFilters(parse(window.location.search));
+    const known = nameKey ? nameKey.split("\u0000") : [];
+    const sync = () => setFilters(parse(window.location.search, known));
     sync();
     window.addEventListener("popstate", sync);
     return () => window.removeEventListener("popstate", sync);
-  }, []);
+  }, [nameKey]);
 
   const apply = useCallback((next: Partial<Filters>) => {
     setFilters((prev) => {
@@ -67,19 +82,19 @@ export function CatalogFilterProvider({ children }: { children: React.ReactNode 
     });
   }, []);
 
+  const activeTagId = tags.find((t) => t.name === filters.tab)?.id ?? null;
+
   const match = useCallback(
     (items: CatalogItem[]) => {
       const q = filters.q.trim().toLowerCase();
       return items.filter((p) => {
-        if (filters.tab === "Promoção" && !p.promotion) return false;
-        if (filters.tab === "Disponíveis" && !p.available) return false;
-        if (filters.tab === "Pedidos" && !p.ordered) return false;
+        if (activeTagId && !(p.tag_ids ?? []).includes(activeTagId)) return false;
         if (filters.brand !== "Todas" && p.brand?.name !== filters.brand) return false;
         if (q.length >= 2 && !p.name.toLowerCase().includes(q)) return false;
         return true;
       });
     },
-    [filters]
+    [filters, activeTagId]
   );
 
   const value = useMemo(() => ({ filters, apply, match }), [filters, apply, match]);

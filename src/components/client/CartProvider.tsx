@@ -7,6 +7,8 @@ export type CartItem = {
   key: string;
   id: string;
   name: string;
+  /** Null for a model with no colourways, which is the normal case. */
+  color: string | null;
   size: number;
   unit: number;
   qty: number;

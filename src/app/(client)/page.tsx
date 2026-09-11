@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getCatalog, getFeatured, getPublicBrands } from "@/lib/catalog";
+import { getCatalog, getFeatured, getPublicBrands, getPublicTags } from "@/lib/catalog";
 import { CatalogControls } from "@/components/client/CatalogControls";
 import { CatalogCount, CatalogGrid } from "@/components/client/CatalogGrid";
 import { Chip } from "@/components/ui/Chip";
@@ -13,8 +13,9 @@ import { brl } from "@/lib/format";
 export const revalidate = 300;
 
 export default async function HomePage() {
-  const [brands, featured, products] = await Promise.all([
+  const [brands, tags, featured, products] = await Promise.all([
     getPublicBrands(),
+    getPublicTags(),
     getFeatured(),
     getCatalog("Todos", null, null),
   ]);
@@ -61,7 +62,7 @@ export default async function HomePage() {
       ) : null}
 
       <div className={featured ? "mt-5 md:mt-8" : ""}>
-        <CatalogControls brands={brands} countLabel={<CatalogCount products={products} />} />
+        <CatalogControls brands={brands} tags={tags} countLabel={<CatalogCount products={products} />} />
       </div>
 
       <div className="mt-5 md:mt-8 flex-1 flex flex-col">

@@ -6,6 +6,7 @@ import { IconChevronDown } from "@/components/icons";
 import { FilterTabs } from "@/components/ui/FilterTabs";
 import { AdminBrandSheet } from "@/components/admin/AdminBrandSheet";
 import { useFilterNavigation } from "@/components/client/FilterNavigation";
+import { TABS, type Tab } from "@/lib/types";
 import type { Brand } from "@/lib/types";
 
 export function AdminListControls({ brands, countLabel }: { brands: Brand[]; countLabel: string }) {
@@ -70,7 +71,7 @@ export function AdminListControls({ brands, countLabel }: { brands: Brand[]; cou
       ) : null}
 
       <div className="mt-3 md:mt-6">
-        <FilterTabs active={filters.tab} onChange={(tab) => apply({ tab })} inline className="md:inline-flex" />
+        <FilterTabs tabs={TABS} active={filters.tab} onChange={(tab) => apply({ tab: tab as Tab })} inline className="md:inline-flex" />
       </div>
 
       <AdminBrandSheet

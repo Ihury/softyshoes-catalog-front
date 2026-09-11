@@ -5,19 +5,25 @@ import { IconChevronDown } from "@/components/icons";
 import { FilterTabs } from "@/components/ui/FilterTabs";
 import { BrandSheet } from "@/components/client/BrandSheet";
 import { useCatalogFilter } from "@/components/client/CatalogFilter";
-import type { Brand } from "@/lib/types";
+import { ALL_TAB, type Brand, type Tag } from "@/lib/types";
 
 export function CatalogControls({
   brands,
+  tags,
   countLabel,
 }: {
   brands: Brand[];
+  tags: Tag[];
   countLabel: React.ReactNode;
 }) {
   const { filters, apply } = useCatalogFilter();
   const [query, setQuery] = useState(filters.q);
   const [queryError, setQueryError] = useState(false);
   const [brandOpen, setBrandOpen] = useState(false);
+
+  // "Todos" is not a tag — it is the absence of one — so it is prepended here
+  // rather than stored. A seller with no tags simply gets a single tab.
+  const tabs = [ALL_TAB, ...tags.map((t) => t.name)];
 
   // The field owns what is being typed, but the URL owns the active search —
   // it changes under us on a Back/Forward and when a shared link is read after
@@ -69,11 +75,11 @@ export function CatalogControls({
         </div>
       ) : null}
 
-      <div className="mt-3 md:hidden">
-        <FilterTabs active={filters.tab} onChange={(tab) => apply({ tab })} />
+      <div className="mt-3 md:hidden overflow-x-auto no-scrollbar">
+        <FilterTabs tabs={tabs} active={filters.tab} onChange={(tab) => apply({ tab })} />
       </div>
       <div className="hidden md:flex md:items-center md:justify-between md:gap-6">
-        <FilterTabs active={filters.tab} onChange={(tab) => apply({ tab })} inline />
+        <FilterTabs tabs={tabs} active={filters.tab} onChange={(tab) => apply({ tab })} inline />
         <div className="text-xs text-ink-25">{countLabel}</div>
       </div>
 

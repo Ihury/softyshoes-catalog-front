@@ -2,18 +2,34 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { IconClose, IconPlus } from "@/components/icons";
+import { IconClose, IconMinus, IconPlus } from "@/components/icons";
 import { ProductImage } from "@/components/ui/ProductImage";
 import { SizeToggleGrid } from "@/components/ui/SizeGrid";
 import { useToast } from "@/components/ui/Toast";
 import { saveProduct, deleteProduct } from "@/lib/actions";
 import { uploadPhoto } from "@/lib/upload";
 import { moneyInput, parseMoney } from "@/lib/format";
-import type { Brand, Product } from "@/lib/types";
+import type { Brand, Product, Tag } from "@/lib/types";
 
-/** Upper bound on photos per model. Generous on purpose — it exists to stop a
- *  runaway paste, not to ration what a model can show. */
+/** Upper bound on photos per model, and per colourway. Generous on purpose —
+ *  it exists to stop a runaway paste, not to ration what a model can show. */
 const MAX_PHOTOS = 15;
+
+/** Upload target for the model's own gallery, as opposed to a colourway key. */
+const MODEL = "model";
+
+/** Enough for any real colour run, low enough that the editor stays readable. */
+const MAX_COLORS = 12;
+
+/** A colourway while it is being edited. The key is local to this form: colour
+ *  rows are rewritten wholesale on save, so their database ids are not stable
+ *  and cannot be used to track a row across renders. */
+type ColorDraft = { key: string; name: string; photos: string[] };
+
+let colorSeq = 0;
+function newColor(): ColorDraft {
+  return { key: `c${++colorSeq}`, name: "", photos: [] };
+}
 
 const FLAGS: { key: keyof Pick<Product, "promotion" | "available" | "featured" | "ordered">; label: string }[] = [
   { key: "promotion", label: "Promoção" },
@@ -92,7 +108,15 @@ function Photo({
   );
 }
 
-export function ProductForm({ product, brands }: { product: Product | null; brands: Brand[] }) {
+export function ProductForm({
+  product,
+  brands,
+  tags,
+}: {
+  product: Product | null;
+  brands: Brand[];
+  tags: Tag[];
+}) {
   const { flash } = useToast();
   const fileInput = useRef<HTMLInputElement>(null);
   // Every field is controlled, including the plain text ones. React resets a
@@ -107,6 +131,10 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
   const [brandId, setBrandId] = useState(product?.brand_id ?? brands[0]?.id ?? "");
   const [sizes, setSizes] = useState<number[]>(product?.sizes ?? []);
   const [photos, setPhotos] = useState<string[]>(product?.photos ?? []);
+  const [tagIds, setTagIds] = useState<string[]>(product?.tag_ids ?? []);
+  const [colors, setColors] = useState<ColorDraft[]>(
+    () => (product?.colors ?? []).map((c) => ({ key: `c${++colorSeq}`, name: c.name, photos: c.photos }))
+  );
   const [flags, setFlags] = useState({
     promotion: product?.promotion ?? false,
     available: product?.available ?? true,
@@ -115,26 +143,56 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
   });
   const [nameError, setNameError] = useState(false);
   const [priceError, setPriceError] = useState(false);
-  /** Local object URL shown while the real upload is still in flight. */
-  const [pending, setPending] = useState<string | null>(null);
+  const [colorError, setColorError] = useState(false);
+  /**
+   * Local object URL shown while the real upload is still in flight, together
+   * with the gallery it belongs to — one file input serves the model and every
+   * colourway, so the preview has to say where it is going.
+   */
+  const [pending, setPending] = useState<{ target: string; url: string } | null>(null);
+  const target = useRef<string>(MODEL);
   const saveAction = saveProduct.bind(null, product?.id ?? null);
   const uploading = pending !== null;
 
   // Object URLs are revoked as soon as the slot stops using them.
   useEffect(() => {
+    const url = pending?.url;
     return () => {
-      if (pending) URL.revokeObjectURL(pending);
+      if (url) URL.revokeObjectURL(url);
     };
   }, [pending]);
+
+  function galleryOf(key: string) {
+    return key === MODEL ? photos : (colors.find((c) => c.key === key)?.photos ?? []);
+  }
+
+  function updateGallery(key: string, next: (prev: string[]) => string[]) {
+    if (key === MODEL) setPhotos(next);
+    else setColors((prev) => prev.map((c) => (c.key === key ? { ...c, photos: next(c.photos) } : c)));
+  }
+
+  function openPicker(key: string) {
+    target.current = key;
+    fileInput.current?.click();
+  }
+
+  /** The optimistic preview occupies the next free slot of its own gallery. */
+  function shownOf(key: string) {
+    const list = galleryOf(key);
+    return pending?.target === key ? list.concat(pending.url).slice(0, MAX_PHOTOS) : list;
+  }
 
   async function onFilePicked(e: React.ChangeEvent<HTMLInputElement>) {
     const picked = Array.from(e.target.files ?? []);
     e.target.value = "";
     if (picked.length === 0) return;
 
-    const room = MAX_PHOTOS - photos.length;
+    // Read once: the picker's target cannot change mid-upload, but the state
+    // it points at will, so the count has to come from the current list.
+    const key = target.current;
+    const room = MAX_PHOTOS - galleryOf(key).length;
     if (room <= 0) {
-      flash(`Máximo de ${MAX_PHOTOS} fotos por modelo.`);
+      flash(`Máximo de ${MAX_PHOTOS} fotos.`);
       return;
     }
     const files = picked.slice(0, room);
@@ -145,7 +203,7 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
     // at empty tiles until the network answers.
     for (const file of files) {
       const preview = URL.createObjectURL(file);
-      setPending(preview);
+      setPending({ target: key, url: preview });
 
       const { url, error } = await uploadPhoto(file);
 
@@ -161,18 +219,18 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
       // because the freshly uploaded URL still has to be fetched.
       await preloadImage(url);
 
-      setPhotos((prev) => prev.concat(url).slice(0, MAX_PHOTOS));
+      updateGallery(key, (prev) => prev.concat(url).slice(0, MAX_PHOTOS));
       setPending(null);
       URL.revokeObjectURL(preview);
     }
   }
 
-  function removePhoto(url: string) {
-    setPhotos((prev) => prev.filter((u) => u !== url));
+  function removePhoto(key: string, url: string) {
+    updateGallery(key, (prev) => prev.filter((u) => u !== url));
   }
 
-  // The optimistic preview occupies the next free slot while it uploads.
-  const shownPhotos = pending ? photos.concat(pending).slice(0, MAX_PHOTOS) : photos;
+  const shownPhotos = shownOf(MODEL);
+  const pendingUrl = pending?.url ?? null;
 
   return (
     <form
@@ -184,9 +242,13 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
         const parsedPrice = parseMoney(price);
         const badName = !name.trim();
         const badPrice = parsedPrice == null || parsedPrice <= 0;
+        // A colour with no name would be dropped on the way to the database.
+        // Say so instead, rather than letting photos disappear quietly.
+        const badColor = colors.some((c) => !c.name.trim());
         setNameError(badName);
         setPriceError(badPrice);
-        if (badName || badPrice) return;
+        setColorError(badColor);
+        if (badName || badPrice || badColor) return;
 
         const result = await saveAction(fd);
         // A successful save redirects, so anything returned here is a failure.
@@ -226,10 +288,10 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
         <div className="mt-3 relative h-[223px] md:h-auto md:aspect-[4/3] rounded-ui overflow-hidden">
           <Photo
             src={shownPhotos[0]}
-            pending={pending}
+            pending={pendingUrl}
             sizes="(min-width: 768px) 560px, 100vw"
             label="foto de capa"
-            onRemove={() => removePhoto(shownPhotos[0])}
+            onRemove={() => removePhoto(MODEL, shownPhotos[0])}
           />
         </div>
       ) : null}
@@ -240,10 +302,10 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
           <div key={src} className="relative w-[76px] h-[76px] rounded-ui overflow-hidden">
             <Photo
               src={src}
-              pending={pending}
+              pending={pendingUrl}
               sizes="76px"
               label={`foto ${i + 2}`}
-              onRemove={() => removePhoto(src)}
+              onRemove={() => removePhoto(MODEL, src)}
             />
           </div>
         ))}
@@ -251,7 +313,7 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
           <button
             type="button"
             disabled={uploading}
-            onClick={() => fileInput.current?.click()}
+            onClick={() => openPicker(MODEL)}
             className="w-[76px] h-[76px] border border-ink-10 rounded-ui flex items-center justify-center text-ink-50 transition-colors hover:text-ink hover:border-ink-25 disabled:opacity-40"
           >
             <IconPlus />
@@ -274,6 +336,113 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
       {photos.map((url) => (
         <input key={url} type="hidden" name="photos" value={url} />
       ))}
+
+      {/* Colourways. A model with none behaves exactly as it always has: one
+          gallery, and nothing extra to choose on the storefront. */}
+      <div className="mt-6">
+        <div className="text-xs text-ink-50">Cores</div>
+        <div className="mt-1 text-xs text-ink-25">
+          Cada cor tem as próprias fotos. Sem nenhuma cor, o modelo usa as fotos acima.
+        </div>
+
+        <div className="mt-3 flex flex-col gap-3">
+          {colors.map((c, i) => {
+            const shown = shownOf(c.key);
+            return (
+              <div
+                key={c.key}
+                className="border border-ink-10 rounded-ui p-3"
+                style={{ animation: "sfRow .34s cubic-bezier(.22,1,.36,1) both" }}
+              >
+                <div className="flex gap-3">
+                  <input
+                    value={c.name}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setColors((prev) =>
+                        prev.map((x) => (x.key === c.key ? { ...x, name: value } : x))
+                      );
+                      setColorError(false);
+                    }}
+                    aria-invalid={colorError && !c.name.trim()}
+                    placeholder="Preto, Off-white, Azul marinho…"
+                    aria-label={`Nome da cor ${i + 1}`}
+                    className={`flex-1 min-w-0 h-10 px-4 border rounded-ui bg-paper text-sm text-ink outline-none transition-colors ${
+                      colorError && !c.name.trim() ? "border-danger" : "border-ink-10 focus:border-ink-25"
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    aria-label={`Remover cor ${i + 1}`}
+                    onClick={() => {
+                      setColors((prev) => prev.filter((x) => x.key !== c.key));
+                      setColorError(false);
+                    }}
+                    className="flex-none w-[34px] h-10 flex items-center justify-center text-ink-25 transition-colors hover:text-ink"
+                  >
+                    <IconMinus />
+                  </button>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-3">
+                  {shown.map((src, j) => (
+                    <div key={src} className="relative w-[76px] h-[76px] rounded-ui overflow-hidden">
+                      <Photo
+                        src={src}
+                        pending={pendingUrl}
+                        sizes="76px"
+                        label={`foto ${j + 1} da cor ${c.name || i + 1}`}
+                        onRemove={() => removePhoto(c.key, src)}
+                      />
+                    </div>
+                  ))}
+                  {shown.length < MAX_PHOTOS ? (
+                    <button
+                      type="button"
+                      disabled={uploading}
+                      onClick={() => openPicker(c.key)}
+                      className="w-[76px] h-[76px] border border-ink-10 rounded-ui flex items-center justify-center text-ink-50 transition-colors hover:text-ink hover:border-ink-25 disabled:opacity-40"
+                    >
+                      <IconPlus />
+                    </button>
+                  ) : null}
+                </div>
+                <div className="mt-2 text-xs text-ink-25">
+                  {shown.length === 0
+                    ? "Sem fotos próprias. Usa as fotos do modelo."
+                    : `${shown.length}/${MAX_PHOTOS} fotos. A primeira é a capa desta cor.`}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {colorError ? (
+          <div role="alert" className="mt-2 text-xs text-danger" style={{ animation: "sfPop .2s ease both" }}>
+            Dê um nome a cada cor, ou remova a que estiver em branco.
+          </div>
+        ) : null}
+
+        {colors.length < MAX_COLORS ? (
+          <button
+            type="button"
+            onClick={() => setColors((prev) => prev.concat(newColor()))}
+            className="mt-3 h-10 min-w-[116px] px-3 rounded-ui border border-ink-10 bg-paper text-ink-50 text-sm transition-colors hover:border-ink-25 hover:text-ink"
+          >
+            Adicionar cor
+          </button>
+        ) : null}
+
+        {/* Colours are a list of lists, which flat form fields cannot carry, so
+            the editor hands the action one JSON payload. */}
+        <input
+          type="hidden"
+          name="colors"
+          value={JSON.stringify(
+            colors.map((c) => ({ name: c.name.trim(), photos: c.photos }))
+          )}
+        />
+      </div>
       {product ? (
         <button
           type="button"
@@ -333,6 +502,47 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
             })}
           </div>
           <input type="hidden" name="brand_id" value={brandId} />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <span className="text-xs text-ink-50">Tags</span>
+          {tags.length === 0 ? (
+            <div className="text-xs text-ink-25">
+              Nenhuma tag cadastrada ainda —{" "}
+              <Link href="/admin/tags" className="underline">
+                criar tags
+              </Link>
+              .
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-3">
+              {tags.map((t) => {
+                const on = tagIds.includes(t.id);
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() =>
+                      setTagIds((prev) =>
+                        prev.includes(t.id) ? prev.filter((x) => x !== t.id) : prev.concat(t.id)
+                      )
+                    }
+                    className={
+                      on
+                        ? "h-10 min-w-[116px] px-3 rounded-ui bg-ink text-paper text-sm font-normal transition-transform active:scale-[.97]"
+                        : "h-10 min-w-[116px] px-3 rounded-ui border border-ink-10 bg-paper text-ink-50 text-sm transition-colors hover:border-ink-25 hover:text-ink"
+                    }
+                  >
+                    {t.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {tagIds.map((id) => (
+            <input key={id} type="hidden" name="tags" value={id} />
+          ))}
         </div>
 
         <div className="flex gap-3">

@@ -4,6 +4,27 @@ export type Brand = {
   created_at: string;
 };
 
+/** A seller-defined filter. The storefront's tab bar is built from these. */
+export type Tag = {
+  id: string;
+  name: string;
+  position: number;
+};
+
+/**
+ * One colourway of a model, with its own photos.
+ *
+ * A model without colours is the normal case and behaves exactly as it always
+ * has: `products.photos` is the gallery. When colours exist they each bring
+ * their own set, and price, sizes and copy stay with the model.
+ */
+export type ProductColor = {
+  id: string;
+  name: string;
+  photos: string[];
+  position: number;
+};
+
 export type Product = {
   id: string;
   name: string;
@@ -22,6 +43,8 @@ export type Product = {
   created_at: string;
   updated_at: string;
   brand?: Brand | null;
+  tag_ids?: string[];
+  colors?: ProductColor[];
 };
 
 /**
@@ -37,6 +60,26 @@ export function asList<T>(value: unknown): T[] {
 }
 
 /**
+ * Shapes a `products` row that was read with its colour and tag embeds.
+ *
+ * Both readers go through this so the storefront and the admin can never
+ * disagree about what a product looks like. Colours arrive in whatever order
+ * Postgres returns them and are sorted here by their stored position.
+ */
+export function normalizeProductRow(row: unknown): Product {
+  const r = row as Product & { product_tags?: { tag_id: string }[] };
+  return {
+    ...r,
+    photos: asList<string>(r.photos),
+    sizes: asList<number>(r.sizes),
+    colors: asList<ProductColor>(r.colors)
+      .map((c) => ({ ...c, photos: asList<string>(c.photos) }))
+      .sort((a, b) => a.position - b.position),
+    tag_ids: asList<{ tag_id: string }>(r.product_tags).map((t) => t.tag_id),
+  };
+}
+
+/**
  * What a catalog card actually renders. The listing queries select only these
  * columns — `description` and `spec` are long free text that would otherwise
  * ride along in every card and get serialized into the RSC payload for
@@ -45,7 +88,12 @@ export function asList<T>(value: unknown): T[] {
 export type CatalogItem = Pick<
   Product,
   "id" | "name" | "price" | "old_price" | "photos" | "promotion" | "available" | "ordered" | "featured"
-> & { brand?: Pick<Brand, "id" | "name"> | null };
+> & {
+  brand?: Pick<Brand, "id" | "name"> | null;
+  /** Tag ids only — the card filters by them and never renders their names,
+   *  so shipping the names in every card would be dead weight. */
+  tag_ids?: string[];
+};
 
 export type SellerSettings = {
   id: number;
@@ -60,6 +108,9 @@ export type SellerSettings = {
 export type OrderItem = {
   product_id: string;
   name: string;
+  /** The colourway as it was named when the order was placed, so a later
+   *  rename in the admin cannot rewrite what someone actually asked for. */
+  color: string | null;
   size: number;
   qty: number;
   unit_price: number;
@@ -73,5 +124,13 @@ export type Order = {
 };
 
 export const SIZES = [35, 36, 37, 38, 39, 40, 41, 42, 43, 44];
+
+/** The storefront's first tab, always present and never stored as a tag. */
+export const ALL_TAB = "Todos";
+
+/**
+ * The admin listing's own tabs, which still filter by the product flags.
+ * The storefront's tabs are the seller's tags instead — see `Tag`.
+ */
 export const TABS = ["Todos", "Promoção", "Disponíveis", "Pedidos"] as const;
 export type Tab = (typeof TABS)[number];

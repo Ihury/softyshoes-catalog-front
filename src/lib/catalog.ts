@@ -1,9 +1,17 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabase/config";
-import { BRANDS_TAG, CATALOG_TAG, SELLER_TAG } from "@/lib/cache-tags";
-import { asList } from "@/lib/types";
-import type { Brand, CatalogItem, Order, Product, SellerSettings, Tab } from "@/lib/types";
+import { BRANDS_TAG, CATALOG_TAG, SELLER_TAG, TAGS_TAG } from "@/lib/cache-tags";
+import { asList, normalizeProductRow } from "@/lib/types";
+import type {
+  Brand,
+  CatalogItem,
+  Order,
+  Product,
+  SellerSettings,
+  Tab,
+  Tag,
+} from "@/lib/types";
 
 /**
  * Read-only Supabase client for the public storefront.
@@ -18,10 +26,17 @@ const anon = createSupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
-/** Columns a catalog card needs. Skips description/spec, which are long and
- *  only ever read on the detail screen. */
+/**
+ * Columns a catalog card needs. Skips description/spec, which are long and only
+ * ever read on the detail screen.
+ *
+ * Embeds are one FK hop each on purpose. PostgREST can also resolve
+ * `tags(...)` straight through the junction table, but that relies on it
+ * picking the right relationship; `product_tags(tag_id)` follows a single
+ * declared foreign key and cannot be ambiguous.
+ */
 const CARD_COLUMNS =
-  "id,name,price,old_price,photos,promotion,available,ordered,featured,brand:brands(id,name)";
+  "id,name,price,old_price,photos,promotion,available,ordered,featured,brand:brands(id,name),product_tags(tag_id)";
 
 /** Cached reads share one lifetime: five minutes of staleness at most, and any
  *  admin write clears them immediately via the tags above. */
@@ -40,9 +55,18 @@ function orThrow<T>(result: { data: T; error: { message: string } | null }): T {
   return result.data;
 }
 
-/** Guarantees `photos` and `sizes` are arrays before anything renders them. */
-function normalizeCard<T extends { photos?: unknown }>(row: T): T {
-  return { ...row, photos: asList<string>(row.photos) };
+/**
+ * Guarantees `photos` is an array and flattens the tag join into plain ids,
+ * so nothing downstream has to know the shape PostgREST returns.
+ */
+function normalizeCard(row: unknown): CatalogItem {
+  const r = row as CatalogItem & { product_tags?: { tag_id: string }[] };
+  const { product_tags, ...card } = r;
+  return {
+    ...card,
+    photos: asList<string>(r.photos),
+    tag_ids: asList<{ tag_id: string }>(product_tags).map((t) => t.tag_id),
+  };
 }
 
 async function queryCatalog(tab: Tab, brandId: string | null, q: string | null) {
@@ -57,7 +81,7 @@ async function queryCatalog(tab: Tab, brandId: string | null, q: string | null) 
   if (q) query = query.ilike("name", `%${q}%`);
 
   const data = orThrow(await query);
-  return ((data as CatalogItem[] | null) ?? []).map(normalizeCard);
+  return asList<unknown>(data).map(normalizeCard);
 }
 
 /**
@@ -87,7 +111,7 @@ export const getFeatured = unstable_cache(
     const data = orThrow(
       await anon.from("products").select(CARD_COLUMNS).eq("featured", true).limit(1).maybeSingle()
     );
-    return data ? normalizeCard(data as unknown as CatalogItem) : null;
+    return data ? normalizeCard(data) : null;
   },
   ["featured"],
   CACHE
@@ -96,14 +120,31 @@ export const getFeatured = unstable_cache(
 export const getPublicProduct = unstable_cache(
   async (id: string): Promise<Product | null> => {
     const data = orThrow(
-      await anon.from("products").select("*, brand:brands(id,name)").eq("id", id).maybeSingle()
+      await anon
+        .from("products")
+        .select(
+          "*, brand:brands(id,name), colors:product_colors(id,name,photos,position), product_tags(tag_id)"
+        )
+        .eq("id", id)
+        .maybeSingle()
     );
     if (!data) return null;
-    const row = data as Product;
-    return { ...row, photos: asList<string>(row.photos), sizes: asList<number>(row.sizes) };
+    return normalizeProductRow(data);
   },
   ["product"],
   CACHE
+);
+
+/** The seller's filters, in the order they are shown on the storefront. */
+export const getPublicTags = unstable_cache(
+  async (): Promise<Tag[]> => {
+    const data = orThrow(
+      await anon.from("tags").select("id,name,position").order("position").order("name")
+    );
+    return asList<Tag>(data);
+  },
+  ["tags"],
+  { tags: [TAGS_TAG], revalidate: 300 }
 );
 
 export const getRelated = unstable_cache(
@@ -116,7 +157,7 @@ export const getRelated = unstable_cache(
         .order("created_at", { ascending: false })
         .limit(8)
     );
-    return ((data as CatalogItem[] | null) ?? []).map(normalizeCard);
+    return asList<unknown>(data).map(normalizeCard);
   },
   ["related"],
   CACHE
