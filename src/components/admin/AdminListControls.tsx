@@ -64,7 +64,7 @@ export function AdminListControls({ brands, countLabel }: { brands: Brand[]; cou
         </div>
       </div>
       {queryError ? (
-        <div className="mt-2 text-xs text-ink-50" style={{ animation: "sfPop .2s ease both" }}>
+        <div role="alert" className="mt-2 text-xs text-danger" style={{ animation: "sfPop .2s ease both" }}>
           Digite ao menos 2 caracteres para buscar.
         </div>
       ) : null}

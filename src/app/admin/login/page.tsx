@@ -38,7 +38,7 @@ export default async function AdminLoginPage({
           />
         </label>
 
-        {error ? <div className="text-xs text-ink">Não foi possível entrar. Verifique email e senha.</div> : null}
+        {error ? <div role="alert" className="text-xs text-danger">Não foi possível entrar. Verifique email e senha.</div> : null}
 
         <button
           type="submit"

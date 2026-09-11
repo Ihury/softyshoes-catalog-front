@@ -9,6 +9,11 @@
   --paper: #fafafa;
   --paper-50: rgba(250, 250, 250, 0.5);
 
+  /* The only hue in an otherwise ink-on-paper palette, so it is spent on one
+     thing: telling someone a value was rejected. Desaturated enough to sit
+     next to the greys without shouting, dark enough to stay legible at 12px. */
+  --danger: #b42318;
+
   --fs-xs: 12px;
   --fs-sm: 14px;
   --fs-md: 16px;
@@ -55,6 +60,7 @@
   --color-ink-03: var(--ink-03);
   --color-paper: var(--paper);
   --color-paper-50: var(--paper-50);
+  --color-danger: var(--danger);
 
   --font-sans: var(--font-inst, "PP Neue Montreal", "Neue Montreal", Helvetica,
     "Helvetica Neue", Arial, sans-serif);

@@ -64,7 +64,7 @@ export function CatalogControls({
         </button>
       </form>
       {queryError ? (
-        <div className="mt-2 text-xs text-ink-50 md:hidden" style={{ animation: "sfPop .2s ease both" }}>
+        <div role="alert" className="mt-2 text-xs text-danger md:hidden" style={{ animation: "sfPop .2s ease both" }}>
           Digite ao menos 2 caracteres para buscar.
         </div>
       ) : null}

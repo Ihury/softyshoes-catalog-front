@@ -21,7 +21,12 @@ export function CatalogGrid({ products }: { products: CatalogItem[] }) {
       </div>
 
       {shown.length === 0 ? (
-        <div className="py-12 md:py-24 text-center text-sm text-ink-50">Nenhum modelo encontrado.</div>
+        // Centred in the space left between the filters and the bottom of the
+        // screen rather than tucked under the controls, so on a wide display the
+        // message lands where the eye already is instead of stranded up top.
+        <div className="flex-1 flex items-center justify-center py-12 md:py-24 text-center text-sm text-ink-50">
+          Nenhum modelo encontrado.
+        </div>
       ) : (
         <div className="mt-6 md:mt-10 text-xs text-ink-25">Selecionado SOFTY.</div>
       )}

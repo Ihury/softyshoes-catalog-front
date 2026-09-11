@@ -8,6 +8,7 @@ import { SizeToggleGrid } from "@/components/ui/SizeGrid";
 import { useToast } from "@/components/ui/Toast";
 import { saveProduct, deleteProduct } from "@/lib/actions";
 import { uploadPhoto } from "@/lib/upload";
+import { moneyInput, parseMoney } from "@/lib/format";
 import type { Brand, Product } from "@/lib/types";
 
 /** Upper bound on photos per model. Generous on purpose — it exists to stop a
@@ -94,6 +95,15 @@ function Photo({
 export function ProductForm({ product, brands }: { product: Product | null; brands: Brand[] }) {
   const { flash } = useToast();
   const fileInput = useRef<HTMLInputElement>(null);
+  // Every field is controlled, including the plain text ones. React resets a
+  // <form action> after the action runs, and an uncontrolled field would come
+  // back empty on a rejected save — the admin would lose everything they had
+  // just typed. A controlled field is restored from state instead.
+  const [name, setName] = useState(product?.name ?? "");
+  const [price, setPrice] = useState(product?.price != null ? moneyInput(product.price) : "");
+  const [oldPrice, setOldPrice] = useState(product?.old_price != null ? moneyInput(product.old_price) : "");
+  const [description, setDescription] = useState(product?.description ?? "");
+  const [spec, setSpec] = useState(product?.spec ?? "");
   const [brandId, setBrandId] = useState(product?.brand_id ?? brands[0]?.id ?? "");
   const [sizes, setSizes] = useState<number[]>(product?.sizes ?? []);
   const [photos, setPhotos] = useState<string[]>(product?.photos ?? []);
@@ -166,18 +176,21 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
 
   return (
     <form
-      action={(fd) => {
-        const name = String(fd.get("name") ?? "").trim();
-        const price = String(fd.get("price") ?? "");
-        if (!name) {
-          setNameError(true);
-          return;
-        }
-        if (!price) {
-          setPriceError(true);
-          return;
-        }
-        saveAction(fd);
+      action={async (fd) => {
+        // Both fields are checked every time, so one save reports everything
+        // that is wrong instead of sending the admin back for a second round.
+        // The price is parsed here with the same helper the server uses, so
+        // "abc" is caught in the form rather than bouncing off the database.
+        const parsedPrice = parseMoney(price);
+        const badName = !name.trim();
+        const badPrice = parsedPrice == null || parsedPrice <= 0;
+        setNameError(badName);
+        setPriceError(badPrice);
+        if (badName || badPrice) return;
+
+        const result = await saveAction(fd);
+        // A successful save redirects, so anything returned here is a failure.
+        if (result?.error) flash(result.error);
       }}
       className="pb-24 md:pb-14"
     >
@@ -280,13 +293,23 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
           <span className="text-xs text-ink-50">Modelo</span>
           <input
             name="name"
-            defaultValue={product?.name}
-            onChange={() => setNameError(false)}
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value);
+              setNameError(false);
+            }}
+            aria-invalid={nameError}
             placeholder="Adidas Samba OG"
-            className="h-10 px-4 border border-ink-10 rounded-ui bg-paper text-sm text-ink outline-none transition-colors focus:border-ink-25"
+            className={`h-10 px-4 border rounded-ui bg-paper text-sm text-ink outline-none transition-colors ${
+              nameError ? "border-danger" : "border-ink-10 focus:border-ink-25"
+            }`}
           />
         </label>
-        {nameError ? <div className="text-xs text-ink">Informe o nome do modelo.</div> : null}
+        {nameError ? (
+          <div role="alert" className="text-xs text-danger" style={{ animation: "sfPop .2s ease both" }}>
+            Informe o nome do modelo.
+          </div>
+        ) : null}
 
         <div className="flex flex-col gap-2">
           <span className="text-xs text-ink-50">Marca</span>
@@ -317,31 +340,43 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
             <span className="text-xs text-ink-50">Preço unidade</span>
             <input
               name="price"
-              defaultValue={product?.price}
-              onChange={() => setPriceError(false)}
+              value={price}
+              onChange={(e) => {
+                setPrice(e.target.value);
+                setPriceError(false);
+              }}
+              aria-invalid={priceError}
               placeholder="749,00"
               inputMode="decimal"
-              className="h-10 px-4 border border-ink-10 rounded-ui bg-paper text-sm text-ink outline-none transition-colors focus:border-ink-25"
+              className={`h-10 px-4 border rounded-ui bg-paper text-sm text-ink outline-none transition-colors ${
+                priceError ? "border-danger" : "border-ink-10 focus:border-ink-25"
+              }`}
             />
           </label>
           <label className="flex-1 min-w-0 flex flex-col gap-2">
             <span className="text-xs text-ink-50">Preço anterior</span>
             <input
               name="old_price"
-              defaultValue={product?.old_price ?? ""}
+              value={oldPrice}
+              onChange={(e) => setOldPrice(e.target.value)}
               placeholder="949,00"
               inputMode="decimal"
               className="h-10 px-4 border border-ink-10 rounded-ui bg-paper text-sm text-ink outline-none transition-colors focus:border-ink-25"
             />
           </label>
         </div>
-        {priceError ? <div className="text-xs text-ink">Informe um preço válido.</div> : null}
+        {priceError ? (
+          <div role="alert" className="text-xs text-danger" style={{ animation: "sfPop .2s ease both" }}>
+            Informe um preço válido.
+          </div>
+        ) : null}
 
         <label className="flex flex-col gap-2">
           <span className="text-xs text-ink-50">Descrição técnica</span>
           <textarea
             name="description"
-            defaultValue={product?.description}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
             rows={4}
             placeholder="Cabedal em couro. Solado de borracha vulcanizada."
             className="px-4 py-3 border border-ink-10 rounded-ui bg-paper text-xs leading-[1.65] text-ink outline-none resize-none transition-colors focus:border-ink-25"
@@ -351,7 +386,8 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
           <span className="text-xs text-ink-50">Ficha técnica completa (Ler mais)</span>
           <textarea
             name="spec"
-            defaultValue={product?.spec}
+            value={spec}
+            onChange={(e) => setSpec(e.target.value)}
             rows={3}
             placeholder="Palmilha fixa em EVA. Forro têxtil."
             className="px-4 py-3 border border-ink-10 rounded-ui bg-paper text-xs leading-[1.65] text-ink outline-none resize-none transition-colors focus:border-ink-25"

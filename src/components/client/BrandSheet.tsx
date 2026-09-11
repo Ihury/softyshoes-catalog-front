@@ -22,7 +22,6 @@ export function BrandSheet({
   return (
     <Sheet open={open} onClose={onClose}>
       <div className="w-9 h-0.5 bg-ink-10 mx-auto mb-5 md:hidden" />
-      <div className="hidden md:block text-xs text-ink-50 mb-3">Marca</div>
       <div className="flex flex-col">
         {options.map((label) => {
           const on = activeBrand === label;

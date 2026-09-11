@@ -20,12 +20,12 @@ export default async function HomePage() {
   ]);
 
   return (
-    <div className="max-w-[1280px] mx-auto px-6 md:px-12 md:pt-8 pb-6 md:pb-14">
+    <div className="flex-1 w-full max-w-[1280px] mx-auto px-6 md:px-12 md:pt-8 pb-6 md:pb-14 flex flex-col">
       {featured ? (
         <Link
           href={`/produto/${featured.id}`}
           prefetch
-          className="block w-full text-left relative h-[223px] md:h-[440px] rounded-ui md:rounded-none overflow-hidden transition-transform duration-200 active:scale-[.985]"
+          className="flex-none block w-full text-left relative h-[223px] md:h-[440px] rounded-ui md:rounded-none overflow-hidden transition-transform duration-200 active:scale-[.985]"
           style={{ animation: "sfUp .6s cubic-bezier(.22,1,.36,1) both" }}
         >
           <ProductImage
@@ -64,7 +64,7 @@ export default async function HomePage() {
         <CatalogControls brands={brands} countLabel={<CatalogCount products={products} />} />
       </div>
 
-      <div className="mt-5 md:mt-8">
+      <div className="mt-5 md:mt-8 flex-1 flex flex-col">
         <CatalogGrid products={products} />
       </div>
     </div>

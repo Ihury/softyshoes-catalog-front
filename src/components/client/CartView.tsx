@@ -61,7 +61,7 @@ export function CartView({ seller, siteUrl }: { seller: SellerSettings; siteUrl:
   }
 
   return (
-    <div className="max-w-[1280px] mx-auto px-6 md:px-12 md:pt-8 pb-[82px] md:pb-14">
+    <div className="w-full max-w-[1280px] mx-auto px-6 md:px-12 md:pt-8 pb-[82px] md:pb-14">
       <Link
         href="/"
         className="hidden md:flex h-10 items-center gap-2 text-xs text-ink-50 transition-colors hover:text-ink w-fit"

@@ -86,7 +86,7 @@ export function BrandsView({ rows }: { rows: Row[] }) {
         </button>
       </div>
       {brandError ? (
-        <div className="mt-2 text-xs text-ink" style={{ animation: "sfPop .2s ease both" }}>
+        <div role="alert" className="mt-2 text-xs text-danger" style={{ animation: "sfPop .2s ease both" }}>
           {brandError}
         </div>
       ) : null}

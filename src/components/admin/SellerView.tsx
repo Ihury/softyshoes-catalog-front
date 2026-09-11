@@ -82,7 +82,11 @@ export function SellerView({ seller }: { seller: SellerSettings }) {
             className="h-10 px-4 border border-ink-10 rounded-ui bg-paper text-sm text-ink outline-none transition-colors focus:border-ink-25"
           />
         </label>
-        {phoneError ? <div className="text-xs text-ink">Informe um número com DDI e DDD.</div> : null}
+        {phoneError ? (
+          <div role="alert" className="text-xs text-danger" style={{ animation: "sfPop .2s ease both" }}>
+            Informe um número com DDI e DDD.
+          </div>
+        ) : null}
 
         <label className="flex flex-col gap-2">
           <span className="text-xs text-ink-50">Mensagem enviada com o pedido</span>
