@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { IconChevronLeft, IconChevronDown, IconCart } from "@/components/icons";
 import { useCart } from "@/components/client/CartProvider";
 import { BrandSheet } from "@/components/client/BrandSheet";
-import { useFilterNavigation } from "@/components/client/FilterNavigation";
+import { useCatalogFilter } from "@/components/client/CatalogFilter";
 import type { Brand } from "@/lib/types";
 
 /** The handoff pairs a 16x16 cart glyph with the word "Carrinho", ink when the
@@ -44,10 +44,17 @@ function cartLabel(count: number) {
 export function ClientHeader({ brands }: { brands: Brand[] }) {
   const pathname = usePathname();
   const { count } = useCart();
-  const { filters, apply } = useFilterNavigation();
+  const { filters, apply } = useCatalogFilter();
   const [scrolled, setScrolled] = useState(false);
   const [brandOpen, setBrandOpen] = useState(false);
   const [query, setQuery] = useState(filters.q);
+
+  // Mirrors the URL-owned search back into the field — see CatalogControls.
+  const [syncedQuery, setSyncedQuery] = useState(filters.q);
+  if (syncedQuery !== filters.q) {
+    setSyncedQuery(filters.q);
+    setQuery(filters.q);
+  }
 
   const showBack = pathname !== "/";
   const showCart = pathname !== "/carrinho";

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { IconChevronDown } from "@/components/icons";
 import { FilterTabs } from "@/components/ui/FilterTabs";
 import { BrandSheet } from "@/components/client/BrandSheet";
-import { useFilterNavigation } from "@/components/client/FilterNavigation";
+import { useCatalogFilter } from "@/components/client/CatalogFilter";
 import type { Brand } from "@/lib/types";
 
 export function CatalogControls({
@@ -12,12 +12,23 @@ export function CatalogControls({
   countLabel,
 }: {
   brands: Brand[];
-  countLabel: string;
+  countLabel: React.ReactNode;
 }) {
-  const { filters, apply } = useFilterNavigation();
+  const { filters, apply } = useCatalogFilter();
   const [query, setQuery] = useState(filters.q);
   const [queryError, setQueryError] = useState(false);
   const [brandOpen, setBrandOpen] = useState(false);
+
+  // The field owns what is being typed, but the URL owns the active search —
+  // it changes under us on a Back/Forward and when a shared link is read after
+  // mount. Re-seeding on that change keeps the box showing the search the grid
+  // is actually applying, without disturbing typing in between.
+  const [syncedQuery, setSyncedQuery] = useState(filters.q);
+  if (syncedQuery !== filters.q) {
+    setSyncedQuery(filters.q);
+    setQuery(filters.q);
+    setQueryError(false);
+  }
 
   function onSearchSubmit(e: React.FormEvent) {
     e.preventDefault();

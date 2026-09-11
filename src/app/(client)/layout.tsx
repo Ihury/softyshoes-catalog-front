@@ -3,13 +3,12 @@ import { CartProvider } from "@/components/client/CartProvider";
 import { FavoritesProvider } from "@/components/client/FavoritesProvider";
 import { ToastProvider } from "@/components/ui/Toast";
 import { ClientHeader } from "@/components/client/ClientHeader";
-import { FilterNavigationProvider } from "@/components/client/FilterNavigation";
+import { CatalogFilterProvider } from "@/components/client/CatalogFilter";
 
-// Rendered per request because the header reads the query string, but that is
-// no longer expensive: every read in this segment comes from `lib/catalog`,
-// which is cached and tag-invalidated, so a request usually touches no
-// database at all.
-export const dynamic = "force-dynamic";
+// Statically rendered and revalidated, so the CDN answers most visits without
+// waking a function. Nothing in this tree reads the query string on the server,
+// which is what keeps it cacheable.
+export const revalidate = 300;
 
 export default async function ClientLayout({ children }: { children: React.ReactNode }) {
   const brands = await getPublicBrands();
@@ -18,14 +17,15 @@ export default async function ClientLayout({ children }: { children: React.React
     <CartProvider>
       <FavoritesProvider>
         <ToastProvider>
-          {/* Lives in the layout so the header search and the catalog filters
-              share one optimistic state and one pending flag. */}
-          <FilterNavigationProvider basePath="/">
+          {/* In the layout so the header search and the catalog filters share
+              one state. It filters in the browser, so no page here has to be
+              rendered per request. */}
+          <CatalogFilterProvider>
             <div className="min-h-dvh flex flex-col">
               <ClientHeader brands={brands} />
               <main className="flex-1">{children}</main>
             </div>
-          </FilterNavigationProvider>
+          </CatalogFilterProvider>
         </ToastProvider>
       </FavoritesProvider>
     </CartProvider>

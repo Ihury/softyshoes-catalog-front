@@ -56,7 +56,7 @@ async function queryCatalog(tab: Tab, brandId: string | null, q: string | null) 
   if (brandId) query = query.eq("brand_id", brandId);
   if (q) query = query.ilike("name", `%${q}%`);
 
-  const { data } = await query;
+  const data = orThrow(await query);
   return ((data as CatalogItem[] | null) ?? []).map(normalizeCard);
 }
 

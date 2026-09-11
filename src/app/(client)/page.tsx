@@ -1,32 +1,23 @@
 import Link from "next/link";
 import { getCatalog, getFeatured, getPublicBrands } from "@/lib/catalog";
 import { CatalogControls } from "@/components/client/CatalogControls";
-import { FilterResults } from "@/components/client/FilterNavigation";
-import { ProductCard } from "@/components/client/ProductCard";
+import { CatalogCount, CatalogGrid } from "@/components/client/CatalogGrid";
 import { Chip } from "@/components/ui/Chip";
 import { ProductImage } from "@/components/ui/ProductImage";
 import { IconChevronRight } from "@/components/icons";
 import { brl } from "@/lib/format";
-import { TABS, type Tab } from "@/lib/types";
 
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ tab?: string; brand?: string; q?: string }>;
-}) {
-  const { tab, brand, q } = await searchParams;
-  const activeTab = TABS.includes(tab as Tab) ? (tab as Tab) : "Todos";
-  const search = q && q.trim().length >= 2 ? q.trim() : null;
+// Static, revalidated on a timer and on every admin write. The whole catalog
+// ships once and the browser narrows it, so a filter costs no request and this
+// page can be served from the CDN.
+export const revalidate = 300;
 
-  // Brands and the featured model are shared across every filter combination,
-  // so they resolve from cache while the listing runs.
-  const [brands, featured] = await Promise.all([getPublicBrands(), getFeatured()]);
-  const brandId = brand ? (brands.find((b) => b.name === brand)?.id ?? null) : null;
-  // A ?brand= that matches no registered brand filters everything out rather
-  // than silently falling back to the unfiltered catalog.
-  const products = brand && !brandId ? [] : await getCatalog(activeTab, brandId, search);
-
-  const empty = products.length === 0;
+export default async function HomePage() {
+  const [brands, featured, products] = await Promise.all([
+    getPublicBrands(),
+    getFeatured(),
+    getCatalog("Todos", null, null),
+  ]);
 
   return (
     <div className="max-w-[1280px] mx-auto px-6 md:px-12 md:pt-8 pb-6 md:pb-14">
@@ -70,23 +61,11 @@ export default async function HomePage({
       ) : null}
 
       <div className={featured ? "mt-5 md:mt-8" : ""}>
-        <CatalogControls brands={brands} countLabel={`${products.length} modelos`} />
+        <CatalogControls brands={brands} countLabel={<CatalogCount products={products} />} />
       </div>
 
       <div className="mt-5 md:mt-8">
-        <FilterResults>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-x-6 md:gap-y-8">
-            {products.map((p, i) => (
-              <ProductCard key={p.id} product={p} delayStep={i} />
-            ))}
-          </div>
-
-          {empty ? (
-            <div className="py-12 md:py-24 text-center text-sm text-ink-50">Nenhum modelo encontrado.</div>
-          ) : (
-            <div className="mt-6 md:mt-10 text-xs text-ink-25">Selecionado SOFTY.</div>
-          )}
-        </FilterResults>
+        <CatalogGrid products={products} />
       </div>
     </div>
   );
