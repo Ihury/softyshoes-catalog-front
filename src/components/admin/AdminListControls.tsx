@@ -1,31 +1,18 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import { IconChevronDown } from "@/components/icons";
 import { FilterTabs } from "@/components/ui/FilterTabs";
-import { TABS, type Tab, type Brand } from "@/lib/types";
 import { AdminBrandSheet } from "@/components/admin/AdminBrandSheet";
+import { useFilterNavigation } from "@/components/client/FilterNavigation";
+import type { Brand } from "@/lib/types";
 
 export function AdminListControls({ brands, countLabel }: { brands: Brand[]; countLabel: string }) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [query, setQuery] = useState(searchParams.get("q") ?? "");
+  const { filters, apply } = useFilterNavigation();
+  const [query, setQuery] = useState(filters.q);
   const [queryError, setQueryError] = useState(false);
   const [brandOpen, setBrandOpen] = useState(false);
-
-  const activeTab = (searchParams.get("tab") as Tab) ?? "Todos";
-  const activeBrand = searchParams.get("brand") ?? "Todas";
-
-  function goWithParams(next: Record<string, string | null>) {
-    const params = new URLSearchParams(searchParams.toString());
-    Object.entries(next).forEach(([k, v]) => {
-      if (v === null || v === "") params.delete(k);
-      else params.set(k, v);
-    });
-    router.push(`/admin${params.toString() ? `?${params.toString()}` : ""}`);
-  }
 
   function onSearchSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -35,7 +22,7 @@ export function AdminListControls({ brands, countLabel }: { brands: Brand[]; cou
       return;
     }
     setQueryError(false);
-    goWithParams({ q: v.length >= 2 ? v : null });
+    apply({ q: v.length >= 2 ? v : "" });
   }
 
   return (
@@ -64,7 +51,7 @@ export function AdminListControls({ brands, countLabel }: { brands: Brand[]; cou
               onClick={() => setBrandOpen(true)}
               className="flex-none h-10 min-w-[116px] px-3 rounded-ui bg-ink text-paper md:bg-paper md:border md:border-ink-10 md:text-ink text-sm flex items-center justify-center gap-2 transition-[opacity,border-color] hover:opacity-[.86] md:hover:opacity-100 md:hover:border-ink-25"
             >
-              <span>{activeBrand === "Todas" ? "Marca" : activeBrand}</span>
+              <span>{filters.brand === "Todas" ? "Marca" : filters.brand}</span>
               <IconChevronDown className="text-paper md:text-ink" stroke="currentColor" />
             </button>
           </form>
@@ -83,22 +70,17 @@ export function AdminListControls({ brands, countLabel }: { brands: Brand[]; cou
       ) : null}
 
       <div className="mt-3 md:mt-6">
-        <FilterTabs
-          active={TABS.includes(activeTab) ? activeTab : "Todos"}
-          onChange={(t) => goWithParams({ tab: t === "Todos" ? null : t })}
-          inline
-          className="md:inline-flex"
-        />
+        <FilterTabs active={filters.tab} onChange={(tab) => apply({ tab })} inline className="md:inline-flex" />
       </div>
 
       <AdminBrandSheet
         open={brandOpen}
         onClose={() => setBrandOpen(false)}
         brands={brands}
-        activeBrand={activeBrand}
-        onSelect={(b) => {
+        activeBrand={filters.brand}
+        onSelect={(brand) => {
           setBrandOpen(false);
-          goWithParams({ brand: b === "Todas" ? null : b });
+          apply({ brand });
         }}
       />
     </div>

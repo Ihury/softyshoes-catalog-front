@@ -91,12 +91,12 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
       <div>
       <div className="hidden md:block text-xs text-ink-50 mb-3">Fotos</div>
       <div className="relative h-[223px] md:h-auto md:aspect-[4/3] rounded-ui overflow-hidden">
-        <ProductImage src={photos[0]} alt="" className="absolute inset-0" />
+        <ProductImage src={photos[0]} alt="" className="absolute inset-0" sizes="(min-width: 768px) 560px, 100vw" />
       </div>
       <div className="mt-3 flex gap-3">
         {[1, 2].map((i) => (
           <div key={i} className="relative w-[76px] h-[76px] rounded-ui overflow-hidden">
-            <ProductImage src={photos[i]} alt="" className="absolute inset-0" />
+            <ProductImage src={photos[i]} alt="" className="absolute inset-0" sizes="76px" />
           </div>
         ))}
         {photos.length < 3 ? (

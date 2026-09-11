@@ -24,6 +24,17 @@ export type Product = {
   brand?: Brand | null;
 };
 
+/**
+ * What a catalog card actually renders. The listing queries select only these
+ * columns — `description` and `spec` are long free text that would otherwise
+ * ride along in every card and get serialized into the RSC payload for
+ * nothing.
+ */
+export type CatalogItem = Pick<
+  Product,
+  "id" | "name" | "price" | "old_price" | "photos" | "promotion" | "available" | "ordered" | "featured"
+> & { brand?: Pick<Brand, "id" | "name"> | null };
+
 export type SellerSettings = {
   id: number;
   name: string;

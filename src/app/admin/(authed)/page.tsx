@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getBrands } from "@/lib/data";
 import { AdminListControls } from "@/components/admin/AdminListControls";
+import { FilterResults } from "@/components/client/FilterNavigation";
 import { ProductImage } from "@/components/ui/ProductImage";
 import { brl } from "@/lib/format";
 import type { Product, Tab } from "@/lib/types";
@@ -16,16 +17,25 @@ export default async function AdminListPage({
   const { tab, brand, q } = await searchParams;
   const activeTab = (tab as Tab) ?? "Todos";
 
+  // The admin list is deliberately uncached — whoever just saved has to see
+  // the result — but it still filters in Postgres rather than in JS.
   const supabase = await createClient();
-  let query = supabase.from("products").select("*, brand:brands(*)").order("created_at", { ascending: false });
+  const brands = await getBrands();
+  const brandId = brand ? (brands.find((b) => b.name === brand)?.id ?? null) : null;
+
+  let query = supabase
+    .from("products")
+    .select("*, brand:brands(id,name)")
+    .order("created_at", { ascending: false });
 
   if (activeTab === "Promoção") query = query.eq("promotion", true);
   if (activeTab === "Disponíveis") query = query.eq("available", true);
   if (activeTab === "Pedidos") query = query.eq("ordered", true);
+  if (brandId) query = query.eq("brand_id", brandId);
   if (q && q.trim().length >= 2) query = query.ilike("name", `%${q.trim()}%`);
 
-  const [{ data: productsRaw }, brands] = await Promise.all([query, getBrands()]);
-  const products = ((productsRaw as Product[]) ?? []).filter((p) => (brand ? p.brand?.name === brand : true));
+  const { data: productsRaw } = brand && !brandId ? { data: [] } : await query;
+  const products = (productsRaw as Product[]) ?? [];
 
   function statusLabel(p: Product) {
     if (p.ordered) return "Pedidos";
@@ -36,6 +46,7 @@ export default async function AdminListPage({
     <div className="px-6 md:px-10 md:pt-8 pb-[82px] md:pb-14">
       <AdminListControls brands={brands} countLabel={`${products.length} modelos`} />
 
+      <FilterResults>
       {/* mobile rows */}
       <div className="mt-5 md:hidden flex flex-col">
         {products.map((p, i) => (
@@ -45,7 +56,7 @@ export default async function AdminListPage({
             className="py-4 border-b border-ink-03 flex items-start gap-4 transition-opacity hover:opacity-[.62]"
             style={{ animation: "sfUp .6s cubic-bezier(.22,1,.36,1) both", animationDelay: `${0.05 * Math.min(i, 7)}s` }}
           >
-            <ProductImage src={p.photos?.[0]} alt={p.name} className="relative flex-none w-[76px] h-[76px]" />
+            <ProductImage src={p.photos?.[0]} alt={p.name} className="relative flex-none w-[76px] h-[76px]" sizes="76px" />
             <div className="flex-1 min-w-0 flex flex-col gap-1">
               <div className="text-sm font-normal text-ink whitespace-nowrap overflow-hidden text-ellipsis">
                 {p.name}
@@ -89,7 +100,7 @@ export default async function AdminListPage({
               animationDelay: `${0.05 * Math.min(i, 7)}s`,
             }}
           >
-            <ProductImage src={p.photos?.[0]} alt={p.name} className="relative w-24 h-[72px]" />
+            <ProductImage src={p.photos?.[0]} alt={p.name} className="relative w-24 h-[72px]" sizes="96px" />
             <div className="min-w-0 flex flex-col gap-1">
               <div className="text-sm font-normal whitespace-nowrap overflow-hidden text-ellipsis">{p.name}</div>
               {p.featured ? <div className="text-xs text-ink-50">Destaque na home</div> : null}
@@ -108,6 +119,7 @@ export default async function AdminListPage({
       {products.length === 0 ? (
         <div className="py-12 md:py-24 text-center text-sm text-ink-50">Nenhum modelo encontrado.</div>
       ) : null}
+      </FilterResults>
 
       <div className="md:hidden fixed left-0 right-0 bottom-0 px-6 py-4 flex justify-center pointer-events-none">
         <Link

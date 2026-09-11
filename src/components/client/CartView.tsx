@@ -79,7 +79,8 @@ export function CartView({ seller, siteUrl }: { seller: SellerSettings; siteUrl:
               className="py-5 md:py-6 border-b border-ink-03 flex items-start gap-4 md:gap-6"
               style={{ animation: "sfRow .3s cubic-bezier(.22,1,.36,1) both" }}
             >
-              <ProductImage src={c.photo} alt={c.name} className="relative flex-none w-[76px] h-[76px] md:w-24 md:h-24" />
+              <ProductImage src={c.photo} alt={c.name} className="relative flex-none w-[76px] h-[76px] md:w-24 md:h-24"
+                sizes="96px" />
               <div className="flex-1 min-w-0 flex flex-col gap-1">
                 <div className="text-sm font-normal text-ink whitespace-nowrap overflow-hidden text-ellipsis">
                   {c.name}

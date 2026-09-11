@@ -1,11 +1,10 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { IconChevronDown } from "@/components/icons";
 import { FilterTabs } from "@/components/ui/FilterTabs";
-import { TABS, type Tab } from "@/lib/types";
 import { BrandSheet } from "@/components/client/BrandSheet";
+import { useFilterNavigation } from "@/components/client/FilterNavigation";
 import type { Brand } from "@/lib/types";
 
 export function CatalogControls({
@@ -15,23 +14,10 @@ export function CatalogControls({
   brands: Brand[];
   countLabel: string;
 }) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [query, setQuery] = useState(searchParams.get("q") ?? "");
+  const { filters, apply } = useFilterNavigation();
+  const [query, setQuery] = useState(filters.q);
   const [queryError, setQueryError] = useState(false);
   const [brandOpen, setBrandOpen] = useState(false);
-
-  const activeTab = (searchParams.get("tab") as Tab) ?? "Todos";
-  const activeBrand = searchParams.get("brand") ?? "Todas";
-
-  function goWithParams(next: Record<string, string | null>) {
-    const params = new URLSearchParams(searchParams.toString());
-    Object.entries(next).forEach(([k, v]) => {
-      if (v === null || v === "") params.delete(k);
-      else params.set(k, v);
-    });
-    router.push(`/${params.toString() ? `?${params.toString()}` : ""}`);
-  }
 
   function onSearchSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -41,7 +27,7 @@ export function CatalogControls({
       return;
     }
     setQueryError(false);
-    goWithParams({ q: v.length >= 2 ? v : null });
+    apply({ q: v.length >= 2 ? v : "" });
   }
 
   return (
@@ -62,7 +48,7 @@ export function CatalogControls({
           onClick={() => setBrandOpen(true)}
           className="flex-none h-10 min-w-[116px] px-3 rounded-ui bg-ink text-paper text-sm flex items-center justify-center gap-2 transition-opacity hover:opacity-[.86] active:scale-[.96]"
         >
-          <span>{activeBrand === "Todas" ? "Marca" : activeBrand}</span>
+          <span>{filters.brand === "Todas" ? "Marca" : filters.brand}</span>
           <IconChevronDown stroke="#FAFAFA" />
         </button>
       </form>
@@ -73,17 +59,10 @@ export function CatalogControls({
       ) : null}
 
       <div className="mt-3 md:hidden">
-        <FilterTabs
-          active={TABS.includes(activeTab) ? activeTab : "Todos"}
-          onChange={(t) => goWithParams({ tab: t === "Todos" ? null : t })}
-        />
+        <FilterTabs active={filters.tab} onChange={(tab) => apply({ tab })} />
       </div>
       <div className="hidden md:flex md:items-center md:justify-between md:gap-6">
-        <FilterTabs
-          active={TABS.includes(activeTab) ? activeTab : "Todos"}
-          onChange={(t) => goWithParams({ tab: t === "Todos" ? null : t })}
-          inline
-        />
+        <FilterTabs active={filters.tab} onChange={(tab) => apply({ tab })} inline />
         <div className="text-xs text-ink-25">{countLabel}</div>
       </div>
 
@@ -91,10 +70,10 @@ export function CatalogControls({
         open={brandOpen}
         onClose={() => setBrandOpen(false)}
         brands={brands}
-        activeBrand={activeBrand}
-        onSelect={(b) => {
+        activeBrand={filters.brand}
+        onSelect={(brand) => {
           setBrandOpen(false);
-          goWithParams({ brand: b === "Todas" ? null : b });
+          apply({ brand });
         }}
       />
     </div>

@@ -1,9 +1,14 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+
+// Admin writes are rare and whoever saved expects to see the change on the
+// storefront right away, so tags expire immediately (`expire: 0`) instead of
+// serving stale content for one more request.
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { parseMoney } from "@/lib/format";
+import { BRANDS_TAG, CATALOG_TAG, SELLER_TAG } from "@/lib/cache-tags";
 import type { OrderItem } from "@/lib/types";
 
 // ---------- Auth ----------
@@ -39,9 +44,10 @@ export async function createBrand(name: string) {
   if (existing) return { error: "Marca já cadastrada." };
   const { error } = await supabase.from("brands").insert({ name: trimmed });
   if (error) return { error: error.message };
+  revalidateTag(BRANDS_TAG, { expire: 0 });
+  revalidateTag(CATALOG_TAG, { expire: 0 });
   revalidatePath("/admin/marcas");
   revalidatePath("/admin");
-  revalidatePath("/");
   return { error: null };
 }
 
@@ -49,9 +55,10 @@ export async function deleteBrand(id: string) {
   const supabase = await createClient();
   const { error } = await supabase.from("brands").delete().eq("id", id);
   if (error) return { error: error.message };
+  revalidateTag(BRANDS_TAG, { expire: 0 });
+  revalidateTag(CATALOG_TAG, { expire: 0 });
   revalidatePath("/admin/marcas");
   revalidatePath("/admin");
-  revalidatePath("/");
   return { error: null };
 }
 
@@ -110,8 +117,8 @@ export async function saveProduct(productId: string | null, formData: FormData) 
     if (error) return { error: error.message };
   }
 
+  revalidateTag(CATALOG_TAG, { expire: 0 });
   revalidatePath("/admin");
-  revalidatePath("/");
   redirect("/admin");
 }
 
@@ -119,8 +126,8 @@ export async function deleteProduct(productId: string) {
   const supabase = await createClient();
   const { error } = await supabase.from("products").delete().eq("id", productId);
   if (error) return { error: error.message };
+  revalidateTag(CATALOG_TAG, { expire: 0 });
   revalidatePath("/admin");
-  revalidatePath("/");
   redirect("/admin");
 }
 
@@ -158,6 +165,7 @@ export async function saveSellerSettings(formData: FormData) {
     })
     .eq("id", 1);
   if (error) return { error: error.message };
+  revalidateTag(SELLER_TAG, { expire: 0 });
   revalidatePath("/admin/vendedor");
   return { error: null };
 }
@@ -166,8 +174,10 @@ export async function saveSellerSettings(formData: FormData) {
 
 export async function registerReaction(productId: string) {
   const supabase = await createClient();
+  // Deliberately no revalidation: the count is cosmetic, the detail view
+  // already bumps it optimistically, and dropping the whole catalog cache on
+  // every visitor tap would be far more expensive than a few stale minutes.
   await supabase.rpc("increment_reaction", { p_product_id: productId });
-  revalidatePath(`/produto/${productId}`);
 }
 
 // ---------- Orders ----------

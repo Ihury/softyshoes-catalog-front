@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { IconChevronLeft, IconChevronRight } from "@/components/icons";
+import { FilterNavigationProvider } from "@/components/client/FilterNavigation";
 
 const NAV = [
   { href: "/admin", label: "Catálogo" },
@@ -32,6 +33,7 @@ export function AdminShell({
   }, []);
 
   return (
+    <FilterNavigationProvider basePath="/admin">
     <div className="min-h-dvh md:grid md:grid-cols-[264px_minmax(0,1fr)]">
       {/* desktop sidebar */}
       <aside className="hidden md:flex md:sticky md:top-0 md:h-dvh border-r border-ink-10 px-6 pt-6 pb-8 flex-col gap-8">
@@ -95,5 +97,6 @@ export function AdminShell({
         {children}
       </div>
     </div>
+    </FilterNavigationProvider>
   );
 }

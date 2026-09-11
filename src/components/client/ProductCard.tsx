@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Chip } from "@/components/ui/Chip";
 import { ProductImage } from "@/components/ui/ProductImage";
 import { brl } from "@/lib/format";
-import type { Product } from "@/lib/types";
+import type { CatalogItem } from "@/lib/types";
 
 export function ProductCard({
   product,
@@ -10,7 +10,7 @@ export function ProductCard({
   className = "",
   imageClassName = "aspect-[161/220]",
 }: {
-  product: Product;
+  product: CatalogItem;
   delayStep?: number;
   className?: string;
   imageClassName?: string;
@@ -27,6 +27,7 @@ export function ProductCard({
             src={product.photos?.[0]}
             alt={product.name}
             className={`relative w-full ${imageClassName}`}
+            sizes="(min-width: 768px) 288px, 45vw"
           />
           <span className="absolute top-3 left-3">
             {product.promotion ? (

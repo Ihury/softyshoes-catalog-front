@@ -16,9 +16,9 @@ import { useFavorites } from "@/components/client/FavoritesProvider";
 import { useToast } from "@/components/ui/Toast";
 import { registerReaction } from "@/lib/actions";
 import { num, brl } from "@/lib/format";
-import type { Product } from "@/lib/types";
+import type { CatalogItem, Product } from "@/lib/types";
 
-export function ProductDetail({ product, related }: { product: Product; related: Product[] }) {
+export function ProductDetail({ product, related }: { product: Product; related: CatalogItem[] }) {
   const router = useRouter();
   const { addItem } = useCart();
   const { isFavorite, toggle } = useFavorites();
@@ -89,7 +89,13 @@ export function ProductDetail({ product, related }: { product: Product; related:
       <div className="md:mt-4 md:grid md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:gap-14">
         <div>
           <div className="relative h-[339px] md:h-auto md:aspect-[4/5] rounded-ui overflow-hidden">
-            <ProductImage src={photos[thumb] ?? product.photos?.[0]} alt={product.name} className="absolute inset-0" />
+            <ProductImage
+              src={photos[thumb] ?? product.photos?.[0]}
+              alt={product.name}
+              className="absolute inset-0"
+              sizes="(min-width: 768px) 640px, 100vw"
+              priority
+            />
             <div className="absolute top-4 left-4 md:top-6 md:left-6 flex gap-2">
               <Chip variant="dark">{product.promotion ? "Promoção" : "Disponível"}</Chip>
               <Chip variant="mid">Uso diário</Chip>
@@ -113,7 +119,7 @@ export function ProductDetail({ product, related }: { product: Product; related:
                 onClick={() => setThumb(i)}
                 className="relative w-[76px] h-[76px] md:w-24 md:h-24 rounded-ui overflow-hidden transition-transform active:scale-[.95]"
               >
-                <ProductImage src={src} alt="" className="absolute inset-0" />
+                <ProductImage src={src} alt="" className="absolute inset-0" sizes="96px" />
                 {thumb !== i ? <span className="absolute inset-0 bg-paper-50" /> : null}
               </button>
             ))}

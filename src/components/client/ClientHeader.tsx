@@ -1,46 +1,44 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { IconChevronLeft, IconChevronDown } from "@/components/icons";
 import { useCart } from "@/components/client/CartProvider";
 import { BrandSheet } from "@/components/client/BrandSheet";
+import { useFilterNavigation } from "@/components/client/FilterNavigation";
 import type { Brand } from "@/lib/types";
 
 export function ClientHeader({ brands }: { brands: Brand[] }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const { count } = useCart();
+  const { filters, apply } = useFilterNavigation();
   const [scrolled, setScrolled] = useState(false);
   const [brandOpen, setBrandOpen] = useState(false);
-  const [query, setQuery] = useState(searchParams.get("q") ?? "");
+  const [query, setQuery] = useState(filters.q);
 
   const showBack = pathname !== "/";
   const showCart = pathname !== "/carrinho";
-  const activeBrand = searchParams.get("brand") ?? "Todas";
+  const activeBrand = filters.brand;
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 6);
+    // Only re-render when the flag actually flips, not on every scroll frame.
+    let on = false;
+    const onScroll = () => {
+      const next = window.scrollY > 6;
+      if (next === on) return;
+      on = next;
+      setScrolled(next);
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  function goWithParams(next: Record<string, string | null>) {
-    const params = new URLSearchParams(searchParams.toString());
-    Object.entries(next).forEach(([k, v]) => {
-      if (v === null || v === "") params.delete(k);
-      else params.set(k, v);
-    });
-    router.push(`/${params.toString() ? `?${params.toString()}` : ""}`);
-  }
-
   function onSearchSubmit(e: React.FormEvent) {
     e.preventDefault();
     const v = query.trim();
-    goWithParams({ q: v.length >= 2 ? v : null });
+    apply({ q: v.length >= 2 ? v : "" });
   }
 
   return (
@@ -112,9 +110,9 @@ export function ClientHeader({ brands }: { brands: Brand[] }) {
         onClose={() => setBrandOpen(false)}
         brands={brands}
         activeBrand={activeBrand}
-        onSelect={(b) => {
+        onSelect={(brand) => {
           setBrandOpen(false);
-          goWithParams({ brand: b === "Todas" ? null : b });
+          apply({ brand });
         }}
       />
     </>

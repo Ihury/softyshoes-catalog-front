@@ -2,9 +2,9 @@
 
 import { useEffect, useRef } from "react";
 import { ProductCard } from "@/components/client/ProductCard";
-import type { Product } from "@/lib/types";
+import type { CatalogItem } from "@/lib/types";
 
-export function RelatedCarousel({ products }: { products: Product[] }) {
+export function RelatedCarousel({ products }: { products: CatalogItem[] }) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

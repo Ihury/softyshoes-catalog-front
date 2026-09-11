@@ -1,15 +1,13 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
-import { getBrands, getFeaturedProduct } from "@/lib/data";
+import { getCatalog, getFeatured, getPublicBrands } from "@/lib/catalog";
 import { CatalogControls } from "@/components/client/CatalogControls";
+import { FilterResults } from "@/components/client/FilterNavigation";
 import { ProductCard } from "@/components/client/ProductCard";
 import { Chip } from "@/components/ui/Chip";
 import { ProductImage } from "@/components/ui/ProductImage";
 import { IconChevronRight } from "@/components/icons";
 import { brl } from "@/lib/format";
-import type { Product, Tab } from "@/lib/types";
-
-export const dynamic = "force-dynamic";
+import { TABS, type Tab } from "@/lib/types";
 
 export default async function HomePage({
   searchParams,
@@ -17,25 +15,16 @@ export default async function HomePage({
   searchParams: Promise<{ tab?: string; brand?: string; q?: string }>;
 }) {
   const { tab, brand, q } = await searchParams;
-  const activeTab = (tab as Tab) ?? "Todos";
+  const activeTab = TABS.includes(tab as Tab) ? (tab as Tab) : "Todos";
+  const search = q && q.trim().length >= 2 ? q.trim() : null;
 
-  const supabase = await createClient();
-  let query = supabase.from("products").select("*, brand:brands(*)").order("created_at", { ascending: false });
-
-  if (activeTab === "Promoção") query = query.eq("promotion", true);
-  if (activeTab === "Disponíveis") query = query.eq("available", true);
-  if (activeTab === "Pedidos") query = query.eq("ordered", true);
-  if (q && q.trim().length >= 2) query = query.ilike("name", `%${q.trim()}%`);
-
-  const [{ data: productsRaw }, brands, featured] = await Promise.all([
-    query,
-    getBrands(),
-    getFeaturedProduct(),
-  ]);
-
-  const products = ((productsRaw as Product[]) ?? []).filter((p) =>
-    brand ? p.brand?.name === brand : true
-  );
+  // Brands and the featured model are shared across every filter combination,
+  // so they resolve from cache while the listing runs.
+  const [brands, featured] = await Promise.all([getPublicBrands(), getFeatured()]);
+  const brandId = brand ? (brands.find((b) => b.name === brand)?.id ?? null) : null;
+  // A ?brand= that matches no registered brand filters everything out rather
+  // than silently falling back to the unfiltered catalog.
+  const products = brand && !brandId ? [] : await getCatalog(activeTab, brandId, search);
 
   const empty = products.length === 0;
 
@@ -47,7 +36,13 @@ export default async function HomePage({
           className="block w-full text-left relative h-[223px] md:h-[440px] rounded-ui md:rounded-none overflow-hidden transition-transform duration-200 active:scale-[.985]"
           style={{ animation: "sfUp .6s cubic-bezier(.22,1,.36,1) both" }}
         >
-          <ProductImage src={featured.photos?.[0]} alt={featured.name} className="absolute inset-0" />
+          <ProductImage
+            src={featured.photos?.[0]}
+            alt={featured.name}
+            className="absolute inset-0"
+            sizes="(min-width: 1280px) 1184px, 100vw"
+            priority
+          />
           <div className="absolute top-4 left-4 md:top-6 md:left-6 flex gap-2">
             {/* Mobile mirrors the model's own chip; desktop labels the slot. */}
             <Chip variant="dark">
@@ -77,17 +72,21 @@ export default async function HomePage({
         <CatalogControls brands={brands} countLabel={`${products.length} modelos`} />
       </div>
 
-      <div className="mt-5 md:mt-8 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-x-6 md:gap-y-8">
-        {products.map((p, i) => (
-          <ProductCard key={p.id} product={p} delayStep={i} />
-        ))}
-      </div>
+      <div className="mt-5 md:mt-8">
+        <FilterResults>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-x-6 md:gap-y-8">
+            {products.map((p, i) => (
+              <ProductCard key={p.id} product={p} delayStep={i} />
+            ))}
+          </div>
 
-      {empty ? (
-        <div className="py-12 md:py-24 text-center text-sm text-ink-50">Nenhum modelo encontrado.</div>
-      ) : (
-        <div className="mt-6 md:mt-10 text-xs text-ink-25">Selecionado SOFTY.</div>
-      )}
+          {empty ? (
+            <div className="py-12 md:py-24 text-center text-sm text-ink-50">Nenhum modelo encontrado.</div>
+          ) : (
+            <div className="mt-6 md:mt-10 text-xs text-ink-25">Selecionado SOFTY.</div>
+          )}
+        </FilterResults>
+      </div>
     </div>
   );
 }
