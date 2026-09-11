@@ -10,30 +10,35 @@ import { useFilterNavigation } from "@/components/client/FilterNavigation";
 import type { Brand } from "@/lib/types";
 
 /** The handoff pairs a 16x16 cart glyph with the word "Carrinho", ink when the
- *  cart has something in it and ink-25 when it is empty. The counter caps at
- *  "9+" so a long list never widens the header. */
+ *  cart has something in it and ink-25 when it is empty. The model count rides
+ *  on the glyph's top-right corner and caps at "9+", so a full cart never
+ *  widens the header. */
 function CartLabel({ count }: { count: number }) {
   const filled = count > 0;
   return (
     <>
-      <IconCart className={filled ? "text-ink" : "text-ink-25"} />
+      {/* The badge is absolutely placed, so the reserved right margin — not the
+          badge itself — is what keeps it clear of the word beside it. */}
+      <span className={`relative flex-none ${filled ? "mr-2" : ""}`}>
+        <IconCart className={filled ? "text-ink" : "text-ink-25"} />
+        {filled ? (
+          <span
+            key={count}
+            className="absolute -top-1.5 left-full -translate-x-1 text-[10px] leading-none text-ink font-normal tabular-nums"
+            style={{ animation: "sfPop .2s ease both" }}
+          >
+            {count > 9 ? "9+" : count}
+          </span>
+        ) : null}
+      </span>
       <span className={filled ? "text-ink font-normal" : "text-ink-25"}>Carrinho</span>
-      {filled ? (
-        <span
-          key={count}
-          className="text-ink font-normal tabular-nums"
-          style={{ animation: "sfPop .2s ease both" }}
-        >
-          {count > 9 ? "9+" : count}
-        </span>
-      ) : null}
     </>
   );
 }
 
 function cartLabel(count: number) {
   if (count === 0) return "Abrir carrinho, vazio";
-  return `Abrir carrinho, ${count} ${count === 1 ? "item" : "itens"}`;
+  return `Abrir carrinho, ${count} ${count === 1 ? "modelo" : "modelos"}`;
 }
 
 export function ClientHeader({ brands }: { brands: Brand[] }) {

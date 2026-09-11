@@ -56,7 +56,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const subtotal = items.reduce((sum, c) => sum + c.unit * c.qty, 0);
     return {
       items,
-      count: items.reduce((n, c) => n + c.qty, 0),
+      // How many distinct models are in the cart, not how many units: four
+      // pairs of one model is one model. The same model in two sizes counts
+      // once, which is why this keys off the product id rather than the line.
+      count: new Set(items.map((c) => c.id)).size,
       subtotal,
       subtotalLabel: brl(subtotal),
       addItem: (item) =>
