@@ -5,11 +5,12 @@ export default async function AdminLoginPage({
 }: {
   searchParams: Promise<{ error?: string; next?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, next } = await searchParams;
 
   return (
     <div className="min-h-dvh flex items-center justify-center bg-paper text-ink px-6">
       <form action={signIn} className="w-full max-w-[360px] flex flex-col gap-3">
+        <input type="hidden" name="next" value={next ?? ""} />
         <div className="mb-2 flex items-baseline gap-2">
           <span className="text-xl leading-none font-normal">SOFTY</span>
           <span className="text-xs text-ink-50">Admin</span>

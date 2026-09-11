@@ -16,12 +16,19 @@ import type { OrderItem } from "@/lib/types";
 export async function signIn(formData: FormData) {
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
+  // Where the proxy bounced this person from. Only same-site admin paths are
+  // honoured, so a crafted ?next= cannot turn the login into an open redirect.
+  const requested = String(formData.get("next") ?? "");
+  const next = /^\/admin(\/|$)/.test(requested) ? requested : "/admin";
+
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
-    redirect(`/admin/login?error=${encodeURIComponent(error.message)}`);
+    const params = new URLSearchParams({ error: error.message });
+    if (next !== "/admin") params.set("next", next);
+    redirect(`/admin/login?${params.toString()}`);
   }
-  redirect("/admin");
+  redirect(next);
 }
 
 export async function signOut() {

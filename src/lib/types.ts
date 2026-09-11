@@ -25,6 +25,18 @@ export type Product = {
 };
 
 /**
+ * Coerces a list column into a real array.
+ *
+ * `photos` is `jsonb` and `sizes` is `int4[]`, so a row written by hand (or by
+ * a migration) can hold something that is not a list — a `'{}'::jsonb` is an
+ * empty *object*, not an empty array. Reads normalize here so a single bad row
+ * can never take a page down with "map is not a function".
+ */
+export function asList<T>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
+}
+
+/**
  * What a catalog card actually renders. The listing queries select only these
  * columns — `description` and `spec` are long free text that would otherwise
  * ride along in every card and get serialized into the RSC payload for

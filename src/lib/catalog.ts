@@ -2,6 +2,7 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabase/config";
 import { BRANDS_TAG, CATALOG_TAG, SELLER_TAG } from "@/lib/cache-tags";
+import { asList } from "@/lib/types";
 import type { Brand, CatalogItem, Order, Product, SellerSettings, Tab } from "@/lib/types";
 
 /**
@@ -26,6 +27,11 @@ const CARD_COLUMNS =
  *  admin write clears them immediately via the tags above. */
 const CACHE = { tags: [CATALOG_TAG], revalidate: 300 };
 
+/** Guarantees `photos` and `sizes` are arrays before anything renders them. */
+function normalizeCard<T extends { photos?: unknown }>(row: T): T {
+  return { ...row, photos: asList<string>(row.photos) };
+}
+
 async function queryCatalog(tab: Tab, brandId: string | null, q: string | null) {
   let query = anon.from("products").select(CARD_COLUMNS).order("created_at", { ascending: false });
 
@@ -38,7 +44,7 @@ async function queryCatalog(tab: Tab, brandId: string | null, q: string | null) 
   if (q) query = query.ilike("name", `%${q}%`);
 
   const { data } = await query;
-  return (data as CatalogItem[] | null) ?? [];
+  return ((data as CatalogItem[] | null) ?? []).map(normalizeCard);
 }
 
 /**
@@ -72,7 +78,7 @@ export const getFeatured = unstable_cache(
       .eq("featured", true)
       .limit(1)
       .maybeSingle();
-    return (data as CatalogItem | null) ?? null;
+    return data ? normalizeCard(data as unknown as CatalogItem) : null;
   },
   ["featured"],
   CACHE
@@ -85,7 +91,9 @@ export const getPublicProduct = unstable_cache(
       .select("*, brand:brands(id,name)")
       .eq("id", id)
       .maybeSingle();
-    return (data as Product | null) ?? null;
+    if (!data) return null;
+    const row = data as Product;
+    return { ...row, photos: asList<string>(row.photos), sizes: asList<number>(row.sizes) };
   },
   ["product"],
   CACHE
@@ -99,7 +107,7 @@ export const getRelated = unstable_cache(
       .neq("id", id)
       .order("created_at", { ascending: false })
       .limit(8);
-    return (data as CatalogItem[] | null) ?? [];
+    return ((data as CatalogItem[] | null) ?? []).map(normalizeCard);
   },
   ["related"],
   CACHE
@@ -129,7 +137,9 @@ export const getPublicSeller = unstable_cache(
 export const getPublicOrder = unstable_cache(
   async (id: string): Promise<Order | null> => {
     const { data } = await anon.from("orders").select("*").eq("id", id).maybeSingle();
-    return (data as Order | null) ?? null;
+    if (!data) return null;
+    const row = data as Order;
+    return { ...row, items: asList<Order["items"][number]>(row.items) };
   },
   ["order"],
   { revalidate: 3600 }

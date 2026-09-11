@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { IconChevronLeft, IconChevronRight } from "@/components/icons";
 import { FilterNavigationProvider } from "@/components/client/FilterNavigation";
+import { signOut } from "@/lib/actions";
 
 const NAV = [
   { href: "/admin", label: "Catálogo" },
@@ -57,6 +58,16 @@ export function AdminShell({
           })}
         </nav>
         <div className="mt-auto flex flex-col gap-2">
+          {/* Not in the handoff — the prototype had no real login — but the
+              panel is behind auth, so it needs a way out. */}
+          <form action={signOut}>
+            <button
+              type="submit"
+              className="h-10 text-xs text-ink-50 transition-colors hover:text-ink"
+            >
+              Sair
+            </button>
+          </form>
           <div className="text-xs text-ink-50">{productCount} modelos no catálogo</div>
           <div className="text-xs text-ink-25">Selecionado SOFTY.</div>
         </div>
@@ -78,7 +89,18 @@ export function AdminShell({
               >
                 <IconChevronLeft />
               </Link>
-            ) : null}
+            ) : (
+              // The list screen has no back arrow, so its left slot carries
+              // the way out of the panel.
+              <form action={signOut} className="absolute left-6 top-1/2 -translate-y-1/2">
+                <button
+                  type="submit"
+                  className="h-10 flex items-center text-xs text-ink-50 transition-colors hover:text-ink active:scale-95"
+                >
+                  Sair
+                </button>
+              </form>
+            )}
             <div className="flex items-baseline gap-2">
               <span className="text-xl leading-none font-normal">SOFTY</span>
               <span className="text-xs text-ink-50">Admin</span>

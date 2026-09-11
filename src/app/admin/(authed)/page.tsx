@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getBrands } from "@/lib/data";
+import { getBrands, normalizeProduct } from "@/lib/data";
 import { AdminListControls } from "@/components/admin/AdminListControls";
 import { FilterResults } from "@/components/client/FilterNavigation";
 import { ProductImage } from "@/components/ui/ProductImage";
@@ -35,7 +35,7 @@ export default async function AdminListPage({
   if (q && q.trim().length >= 2) query = query.ilike("name", `%${q.trim()}%`);
 
   const { data: productsRaw } = brand && !brandId ? { data: [] } : await query;
-  const products = (productsRaw as Product[]) ?? [];
+  const products = ((productsRaw as Product[]) ?? []).map(normalizeProduct);
 
   function statusLabel(p: Product) {
     if (p.ordered) return "Pedidos";
