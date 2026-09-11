@@ -69,3 +69,21 @@ export function IconPlus({ className, size = 16 }: IconProps) {
     </svg>
   );
 }
+
+/** Cart glyph on the 16×16 grid the handoff specifies for every icon:
+ *  stroke-width 1.5, currentColor, no fill. */
+export function IconCart({ className, size = 16 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true" className={className}>
+      <path
+        d="M1.6 2.2h1.9l1.7 7.6h6.9l1.4-5.3H4.3"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="6.4" cy="13" r="1" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="11.4" cy="13" r="1" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}

@@ -138,21 +138,6 @@ export async function deleteProduct(productId: string) {
   redirect("/admin");
 }
 
-export async function uploadProductPhoto(formData: FormData) {
-  const file = formData.get("file") as File | null;
-  if (!file || file.size === 0) return { url: null, error: "Nenhum arquivo enviado." };
-  const supabase = await createClient();
-  const ext = file.name.split(".").pop() || "jpg";
-  const path = `${crypto.randomUUID()}.${ext}`;
-  const { error } = await supabase.storage.from("product-photos").upload(path, file, {
-    contentType: file.type,
-    upsert: false,
-  });
-  if (error) return { url: null, error: error.message };
-  const { data } = supabase.storage.from("product-photos").getPublicUrl(path);
-  return { url: data.publicUrl, error: null };
-}
-
 // ---------- Seller settings ----------
 
 export async function saveSellerSettings(formData: FormData) {

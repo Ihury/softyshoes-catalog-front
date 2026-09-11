@@ -28,7 +28,11 @@ export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
   return (
     <button
       ref={ref}
-      className={`${base} ${variants[variant]} ${fullWidth ? "flex-1 w-full" : "flex-none"} ${className}`}
+      // `basis-auto` matters: plain `flex-1` sets flex-basis:0, which in the
+      // cart's `flex-col` action column overrides h-10 and collapses the button
+      // to its text height. With an auto basis the height holds at 40px in a
+      // column while the button still absorbs the free width in a row.
+      className={`${base} ${variants[variant]} ${fullWidth ? "flex-1 basis-auto w-full" : "flex-none"} ${className}`}
       {...props}
     />
   );

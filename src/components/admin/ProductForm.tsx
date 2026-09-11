@@ -1,12 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { IconPlus } from "@/components/icons";
 import { ProductImage } from "@/components/ui/ProductImage";
 import { SizeToggleGrid } from "@/components/ui/SizeGrid";
 import { useToast } from "@/components/ui/Toast";
-import { saveProduct, deleteProduct, uploadProductPhoto } from "@/lib/actions";
+import { saveProduct, deleteProduct } from "@/lib/actions";
+import { uploadPhoto } from "@/lib/upload";
 import type { Brand, Product } from "@/lib/types";
 
 const FLAGS: { key: keyof Pick<Product, "promotion" | "available" | "featured" | "ordered">; label: string }[] = [
@@ -15,6 +16,38 @@ const FLAGS: { key: keyof Pick<Product, "promotion" | "available" | "featured" |
   { key: "featured", label: "Destaque na home" },
   { key: "ordered", label: "Aparece em Pedidos" },
 ];
+
+/**
+ * One photo slot. A freshly picked file is still a local `blob:` URL, which the
+ * Next image optimizer cannot fetch, so it renders through a plain <img> and
+ * carries the handoff's 1px progress bar until the upload lands.
+ */
+function PhotoSlot({
+  src,
+  pending,
+  sizes,
+}: {
+  src?: string;
+  pending: string | null;
+  sizes: string;
+}) {
+  const isPending = !!src && src === pending;
+  if (isPending) {
+    return (
+      <div className="absolute inset-0 overflow-hidden rounded-ui bg-ink-10">
+        {/* eslint-disable-next-line @next/next/no-img-element -- local blob preview, not an optimizable asset */}
+        <img src={src} alt="" className="w-full h-full object-cover opacity-65" />
+        <div className="absolute left-0 right-0 bottom-0 h-px overflow-hidden bg-ink-03">
+          <div
+            className="w-[30%] h-full bg-ink-25"
+            style={{ animation: "sfBar 1.1s cubic-bezier(.5,0,.5,1) infinite" }}
+          />
+        </div>
+      </div>
+    );
+  }
+  return <ProductImage src={src} alt="" className="absolute inset-0" sizes={sizes} />;
+}
 
 export function ProductForm({ product, brands }: { product: Product | null; brands: Brand[] }) {
   const { flash } = useToast();
@@ -30,24 +63,42 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
   });
   const [nameError, setNameError] = useState(false);
   const [priceError, setPriceError] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  /** Local object URL shown while the real upload is still in flight. */
+  const [pending, setPending] = useState<string | null>(null);
   const saveAction = saveProduct.bind(null, product?.id ?? null);
+  const uploading = pending !== null;
+
+  // Object URLs are revoked as soon as the slot stops using them.
+  useEffect(() => {
+    return () => {
+      if (pending) URL.revokeObjectURL(pending);
+    };
+  }, [pending]);
 
   async function onFilePicked(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    setUploading(true);
-    const fd = new FormData();
-    fd.set("file", file);
-    const { url, error } = await uploadProductPhoto(fd);
-    setUploading(false);
+
+    // Paint the chosen photo immediately from the local file — the admin sees
+    // it in the slot right away instead of staring at an empty tile until the
+    // network answers.
+    const preview = URL.createObjectURL(file);
+    setPending(preview);
+
+    const { url, error } = await uploadPhoto(file);
+
+    URL.revokeObjectURL(preview);
+    setPending(null);
     if (error || !url) {
       flash(error ?? "Não foi possível enviar a foto.");
       return;
     }
     setPhotos((prev) => prev.concat(url).slice(0, 3));
   }
+
+  // The optimistic preview occupies the next free slot while it uploads.
+  const shownPhotos = pending ? photos.concat(pending).slice(0, 3) : photos;
 
   return (
     <form
@@ -91,15 +142,15 @@ export function ProductForm({ product, brands }: { product: Product | null; bran
       <div>
       <div className="hidden md:block text-xs text-ink-50 mb-3">Fotos</div>
       <div className="relative h-[223px] md:h-auto md:aspect-[4/3] rounded-ui overflow-hidden">
-        <ProductImage src={photos[0]} alt="" className="absolute inset-0" sizes="(min-width: 768px) 560px, 100vw" />
+        <PhotoSlot src={shownPhotos[0]} pending={pending} sizes="(min-width: 768px) 560px, 100vw" />
       </div>
       <div className="mt-3 flex gap-3">
         {[1, 2].map((i) => (
           <div key={i} className="relative w-[76px] h-[76px] rounded-ui overflow-hidden">
-            <ProductImage src={photos[i]} alt="" className="absolute inset-0" sizes="76px" />
+            <PhotoSlot src={shownPhotos[i]} pending={pending} sizes="76px" />
           </div>
         ))}
-        {photos.length < 3 ? (
+        {shownPhotos.length < 3 ? (
           <button
             type="button"
             disabled={uploading}

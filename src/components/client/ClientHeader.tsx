@@ -3,11 +3,38 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { IconChevronLeft, IconChevronDown } from "@/components/icons";
+import { IconChevronLeft, IconChevronDown, IconCart } from "@/components/icons";
 import { useCart } from "@/components/client/CartProvider";
 import { BrandSheet } from "@/components/client/BrandSheet";
 import { useFilterNavigation } from "@/components/client/FilterNavigation";
 import type { Brand } from "@/lib/types";
+
+/** The handoff pairs a 16x16 cart glyph with the word "Carrinho", ink when the
+ *  cart has something in it and ink-25 when it is empty. The counter caps at
+ *  "9+" so a long list never widens the header. */
+function CartLabel({ count }: { count: number }) {
+  const filled = count > 0;
+  return (
+    <>
+      <IconCart className={filled ? "text-ink" : "text-ink-25"} />
+      <span className={filled ? "text-ink font-normal" : "text-ink-25"}>Carrinho</span>
+      {filled ? (
+        <span
+          key={count}
+          className="text-ink font-normal tabular-nums"
+          style={{ animation: "sfPop .2s ease both" }}
+        >
+          {count > 9 ? "9+" : count}
+        </span>
+      ) : null}
+    </>
+  );
+}
+
+function cartLabel(count: number) {
+  if (count === 0) return "Abrir carrinho, vazio";
+  return `Abrir carrinho, ${count} ${count === 1 ? "item" : "itens"}`;
+}
 
 export function ClientHeader({ brands }: { brands: Brand[] }) {
   const pathname = usePathname();
@@ -63,10 +90,10 @@ export function ClientHeader({ brands }: { brands: Brand[] }) {
           {showCart ? (
             <Link
               href="/carrinho"
-              aria-label="Abrir carrinho"
-              className="absolute right-6 top-1/2 -translate-y-1/2 h-10 flex items-center text-xs transition-transform active:scale-95"
+              aria-label={cartLabel(count)}
+              className="absolute right-6 top-1/2 -translate-y-1/2 h-10 flex items-center gap-2 text-xs transition-transform active:scale-95"
             >
-              <span className={count > 0 ? "text-ink font-normal" : "text-ink-25"}>Carrinho</span>
+              <CartLabel count={count} />
             </Link>
           ) : null}
         </div>
@@ -97,9 +124,10 @@ export function ClientHeader({ brands }: { brands: Brand[] }) {
             </form>
             <Link
               href="/carrinho"
+              aria-label={cartLabel(count)}
               className="flex-none h-10 flex items-center gap-2 text-sm transition-opacity hover:opacity-60"
             >
-              <span className={count > 0 ? "text-ink font-normal" : "text-ink-25"}>Carrinho</span>
+              <CartLabel count={count} />
             </Link>
           </div>
         </div>

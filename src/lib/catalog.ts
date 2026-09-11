@@ -27,6 +27,19 @@ const CARD_COLUMNS =
  *  admin write clears them immediately via the tags above. */
 const CACHE = { tags: [CATALOG_TAG], revalidate: 300 };
 
+/**
+ * Turns a failed request into a thrown error instead of an empty result.
+ *
+ * These readers are cached, so returning null on a transport failure would
+ * freeze that failure for the whole revalidate window — a blip while reading a
+ * product would serve a 404 for five minutes. A throw is never cached, so the
+ * next request simply tries again.
+ */
+function orThrow<T>(result: { data: T; error: { message: string } | null }): T {
+  if (result.error) throw new Error(`Supabase: ${result.error.message}`);
+  return result.data;
+}
+
 /** Guarantees `photos` and `sizes` are arrays before anything renders them. */
 function normalizeCard<T extends { photos?: unknown }>(row: T): T {
   return { ...row, photos: asList<string>(row.photos) };
@@ -63,8 +76,7 @@ export const getCatalog = unstable_cache(
 
 export const getPublicBrands = unstable_cache(
   async (): Promise<Brand[]> => {
-    const { data } = await anon.from("brands").select("id,name,created_at").order("name");
-    return data ?? [];
+    return orThrow(await anon.from("brands").select("id,name,created_at").order("name")) ?? [];
   },
   ["brands"],
   { tags: [BRANDS_TAG], revalidate: 300 }
@@ -72,12 +84,9 @@ export const getPublicBrands = unstable_cache(
 
 export const getFeatured = unstable_cache(
   async (): Promise<CatalogItem | null> => {
-    const { data } = await anon
-      .from("products")
-      .select(CARD_COLUMNS)
-      .eq("featured", true)
-      .limit(1)
-      .maybeSingle();
+    const data = orThrow(
+      await anon.from("products").select(CARD_COLUMNS).eq("featured", true).limit(1).maybeSingle()
+    );
     return data ? normalizeCard(data as unknown as CatalogItem) : null;
   },
   ["featured"],
@@ -86,11 +95,9 @@ export const getFeatured = unstable_cache(
 
 export const getPublicProduct = unstable_cache(
   async (id: string): Promise<Product | null> => {
-    const { data } = await anon
-      .from("products")
-      .select("*, brand:brands(id,name)")
-      .eq("id", id)
-      .maybeSingle();
+    const data = orThrow(
+      await anon.from("products").select("*, brand:brands(id,name)").eq("id", id).maybeSingle()
+    );
     if (!data) return null;
     const row = data as Product;
     return { ...row, photos: asList<string>(row.photos), sizes: asList<number>(row.sizes) };
@@ -101,12 +108,14 @@ export const getPublicProduct = unstable_cache(
 
 export const getRelated = unstable_cache(
   async (id: string): Promise<CatalogItem[]> => {
-    const { data } = await anon
-      .from("products")
-      .select(CARD_COLUMNS)
-      .neq("id", id)
-      .order("created_at", { ascending: false })
-      .limit(8);
+    const data = orThrow(
+      await anon
+        .from("products")
+        .select(CARD_COLUMNS)
+        .neq("id", id)
+        .order("created_at", { ascending: false })
+        .limit(8)
+    );
     return ((data as CatalogItem[] | null) ?? []).map(normalizeCard);
   },
   ["related"],
@@ -115,7 +124,7 @@ export const getRelated = unstable_cache(
 
 export const getPublicSeller = unstable_cache(
   async (): Promise<SellerSettings> => {
-    const { data } = await anon.from("seller_settings").select("*").eq("id", 1).maybeSingle();
+    const data = orThrow(await anon.from("seller_settings").select("*").eq("id", 1).maybeSingle());
     return (
       (data as SellerSettings) ?? {
         id: 1,
@@ -136,7 +145,7 @@ export const getPublicSeller = unstable_cache(
  *  served from cache for a long while. */
 export const getPublicOrder = unstable_cache(
   async (id: string): Promise<Order | null> => {
-    const { data } = await anon.from("orders").select("*").eq("id", id).maybeSingle();
+    const data = orThrow(await anon.from("orders").select("*").eq("id", id).maybeSingle());
     if (!data) return null;
     const row = data as Order;
     return { ...row, items: asList<Order["items"][number]>(row.items) };
