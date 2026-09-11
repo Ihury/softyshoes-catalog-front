@@ -43,7 +43,7 @@ export default async function AdminListPage({
   }
 
   return (
-    <div className="px-6 md:px-10 md:pt-8 pb-[82px] md:pb-14">
+    <div className="flex-1 min-w-0 flex flex-col px-6 md:px-10 md:pt-8 pb-[82px] md:pb-14">
       <AdminListControls brands={brands} countLabel={`${products.length} modelos`} />
 
       <FilterResults>
@@ -76,8 +76,10 @@ export default async function AdminListPage({
         ))}
       </div>
 
-      {/* desktop table */}
+      {/* desktop table. The column headings only appear when there are rows to
+          head — otherwise they hang above the centred empty message. */}
       <div className="hidden md:block mt-6">
+        {products.length > 0 ? (
         <div
           className="grid gap-4 pb-3 border-b border-ink-10 text-xs text-ink-50"
           style={{ gridTemplateColumns: "96px minmax(0,2fr) 120px 160px 120px 120px" }}
@@ -89,6 +91,7 @@ export default async function AdminListPage({
           <div>Numerações</div>
           <div>Status</div>
         </div>
+        ) : null}
         {products.map((p, i) => (
           <Link
             key={p.id}
@@ -117,7 +120,10 @@ export default async function AdminListPage({
       </div>
 
       {products.length === 0 ? (
-        <div className="py-12 md:py-24 text-center text-sm text-ink-50">Nenhum modelo encontrado.</div>
+        // Centred in what is left below the controls, matching the storefront.
+        <div className="flex-1 flex items-center justify-center py-12 md:py-24 text-center text-sm text-ink-50">
+          Nenhum modelo encontrado.
+        </div>
       ) : null}
       </FilterResults>
 

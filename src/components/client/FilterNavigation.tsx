@@ -80,7 +80,9 @@ export function useFilterNavigation() {
 export function FilterResults({ children }: { children: React.ReactNode }) {
   const { pending } = useFilterNavigation();
   return (
-    <div>
+    // A column that passes its height down, so a listing that comes back empty
+    // can centre its message instead of hugging the progress bar.
+    <div className="flex-1 min-w-0 flex flex-col">
       <div className="relative h-px overflow-hidden" aria-hidden={!pending}>
         {pending ? (
           <div
@@ -96,7 +98,7 @@ export function FilterResults({ children }: { children: React.ReactNode }) {
         ) : null}
       </div>
       <div
-        className="transition-opacity duration-200"
+        className="flex-1 min-w-0 flex flex-col transition-opacity duration-200"
         style={pending ? { opacity: 0.65 } : undefined}
       >
         {children}

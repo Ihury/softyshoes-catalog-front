@@ -35,7 +35,7 @@ export function AdminShell({
 
   return (
     <FilterNavigationProvider basePath="/admin">
-    <div className="min-h-dvh md:grid md:grid-cols-[264px_minmax(0,1fr)]">
+    <div className="min-h-dvh flex flex-col md:grid md:grid-cols-[264px_minmax(0,1fr)]">
       {/* desktop sidebar */}
       <aside className="hidden md:flex md:sticky md:top-0 md:h-dvh border-r border-ink-10 px-6 pt-6 pb-8 flex-col gap-8">
         <div className="flex items-baseline gap-2">
@@ -73,7 +73,10 @@ export function AdminShell({
         </div>
       </aside>
 
-      <div className="min-w-0">
+      {/* flex-1 fills the column on mobile; on desktop the grid row already
+          stretches. Either way the page below can centre an empty state in
+          whatever height is left. */}
+      <div className="min-w-0 flex-1 flex flex-col">
         {/* mobile header */}
         <div className="md:hidden sticky top-0 z-20">
           <div
