@@ -69,7 +69,10 @@ export function ProductDetail({ product, related }: { product: Product; related:
       size,
       unit: product.price,
       qty,
-      photo: gallery[0] ?? null,
+      // The photo on screen when they tapped, not the model's cover. It is how
+      // someone says which colourway they want: the seller opens the order and
+      // sees the exact shot that was being looked at.
+      photo: gallery[thumb] ?? gallery[0] ?? null,
     });
     router.push("/carrinho");
   }
@@ -123,6 +126,11 @@ export function ProductDetail({ product, related }: { product: Product; related:
               </button>
             ))}
           </div>
+          {gallery.length > 1 ? (
+            <div className="mt-2 text-xs text-ink-25">
+              A foto escolhida vai junto no pedido.
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-5 md:mt-0">
