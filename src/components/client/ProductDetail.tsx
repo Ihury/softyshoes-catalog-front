@@ -1,63 +1,31 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ProductImage } from "@/components/ui/ProductImage";
 import { Chip } from "@/components/ui/Chip";
 import { Button } from "@/components/ui/Button";
 import { Stepper } from "@/components/ui/Stepper";
 import { SizeSelectGrid } from "@/components/ui/SizeGrid";
-import { IconStar, IconChevronLeft } from "@/components/icons";
+import { IconChevronLeft } from "@/components/icons";
 import Link from "next/link";
 import { RelatedCarousel } from "@/components/client/RelatedCarousel";
-import { ReviewSheet } from "@/components/client/ReviewSheet";
 import { useCart } from "@/components/client/CartProvider";
-import { useToast } from "@/components/ui/Toast";
-import { registerReaction } from "@/lib/actions";
-import { num, brl } from "@/lib/format";
+import { brl } from "@/lib/format";
 import type { CatalogItem, Product } from "@/lib/types";
 
 export function ProductDetail({ product, related }: { product: Product; related: CatalogItem[] }) {
   const router = useRouter();
   const { addItem } = useCart();
-  const { flash } = useToast();
 
   const [thumb, setThumb] = useState(0);
   const [qty, setQty] = useState(1);
   const [size, setSize] = useState<number | null>(null);
   const [sizeError, setSizeError] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const [reviewOpen, setReviewOpen] = useState(false);
-  const [reactionCount, setReactionCount] = useState(product.reaction_count);
-  const [myRating, setMyRating] = useState(0);
 
   const gallery = product.photos ?? [];
   const photos: (string | null)[] = gallery.length ? gallery : [null, null];
-  const ratingKey = `softy:myRating:${product.id}`;
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(ratingKey);
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time hydration from localStorage after mount, required to avoid an SSR/CSR mismatch
-      if (raw) setMyRating(Number(raw));
-    } catch {
-      // ignore
-    }
-  }, [ratingKey]);
-
-  function submitReview(rating: number) {
-    setMyRating(rating);
-    try {
-      localStorage.setItem(ratingKey, String(rating));
-    } catch {
-      // storage unavailable — the rating still applies for this visit
-    }
-    setReactionCount((n) => n + 1);
-    registerReaction(product.id);
-    setReviewOpen(false);
-    flash("Reação registrada.");
-  }
-
   function onAddToCart() {
     if (!size) {
       setSizeError(true);
@@ -140,20 +108,6 @@ export function ProductDetail({ product, related }: { product: Product; related:
             {product.old_price ? <span className="text-ink-25 line-through">{brl(product.old_price)}</span> : null}
           </div>
 
-          <button
-            type="button"
-            onClick={() => setReviewOpen(true)}
-            className="mt-3 md:mt-4 flex items-center gap-2 transition-opacity hover:opacity-60"
-          >
-            <IconStar />
-            <span className="text-xs text-ink font-normal">{num(reactionCount)}</span>
-            <span className="text-xs text-ink-50 underline underline-offset-2">reações</span>
-          </button>
-          {myRating > 0 ? (
-            <div className="mt-2 text-xs text-ink-50" style={{ animation: "sfPop .22s ease both" }}>
-              Sua reação: {myRating} de 5.
-            </div>
-          ) : null}
 
           <div className="mt-4 md:hidden flex items-center gap-3">
             <Stepper value={qty} onChange={setQty} />
@@ -212,13 +166,6 @@ export function ProductDetail({ product, related }: { product: Product; related:
         </Button>
       </div>
 
-      <ReviewSheet
-        open={reviewOpen}
-        onClose={() => setReviewOpen(false)}
-        productName={product.name}
-        myRating={myRating}
-        onSubmit={submitReview}
-      />
     </div>
   );
 }

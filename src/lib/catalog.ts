@@ -36,7 +36,7 @@ const anon = createSupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
  * declared foreign key and cannot be ambiguous.
  */
 const CARD_COLUMNS =
-  "id,name,price,old_price,photos,promotion,available,ordered,featured,brand:brands(id,name),product_tags(tag_id)";
+  "id,slug,name,price,old_price,photos,promotion,available,ordered,featured,brand:brands(id,name),product_tags(tag_id)";
 
 /** Cached reads share one lifetime: five minutes of staleness at most, and any
  *  admin write clears them immediately via the tags above. */
@@ -117,14 +117,19 @@ export const getFeatured = unstable_cache(
   CACHE
 );
 
+/** Links minted before slugs existed still carry a bare uuid. */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export const getPublicProduct = unstable_cache(
-  async (id: string): Promise<Product | null> => {
+  async (slugOrId: string): Promise<Product | null> => {
+    const query = anon
+      .from("products")
+      .select("*, brand:brands(id,name), product_tags(tag_id)");
     const data = orThrow(
-      await anon
-        .from("products")
-        .select("*, brand:brands(id,name), product_tags(tag_id)")
-        .eq("id", id)
-        .maybeSingle()
+      await (UUID.test(slugOrId)
+        ? query.eq("id", slugOrId)
+        : query.eq("slug", slugOrId)
+      ).maybeSingle()
     );
     if (!data) return null;
     return normalizeProductRow(data);
@@ -146,12 +151,12 @@ export const getPublicTags = unstable_cache(
 );
 
 export const getRelated = unstable_cache(
-  async (id: string): Promise<CatalogItem[]> => {
+  async (slug: string): Promise<CatalogItem[]> => {
     const data = orThrow(
       await anon
         .from("products")
         .select(CARD_COLUMNS)
-        .neq("id", id)
+        .neq("slug", slug)
         .order("created_at", { ascending: false })
         .limit(8)
     );

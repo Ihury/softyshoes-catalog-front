@@ -24,7 +24,7 @@ export default async function HomePage() {
     <div className="flex-1 w-full max-w-[1280px] mx-auto px-6 md:px-12 md:pt-8 pb-6 md:pb-14 flex flex-col">
       {featured ? (
         <Link
-          href={`/produto/${featured.id}`}
+          href={`/produto/${featured.slug}`}
           prefetch
           className="flex-none block w-full text-left relative h-[223px] md:h-[440px] rounded-ui md:rounded-none overflow-hidden transition-transform duration-200 active:scale-[.985]"
           style={{ animation: "sfUp .6s cubic-bezier(.22,1,.36,1) both" }}

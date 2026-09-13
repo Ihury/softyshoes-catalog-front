@@ -43,7 +43,7 @@ export async function signOut() {
  * Refreshes the prerendered storefront after a catalog write.
  *
  * Clearing the data-cache tag is not enough on its own any more: `/` and
- * `/produto/[id]` are prerendered, so without this an admin save would keep
+ * `/produto/[slug]` are prerendered, so without this an admin save would keep
  * serving the old HTML until the revalidate window expired — the seller would
  * edit a model and not see it on the site for five minutes. `layout` covers
  * every page under the storefront tree, the product pages included.
@@ -307,16 +307,6 @@ export async function saveSellerSettings(formData: FormData) {
   revalidateStorefront();
   revalidatePath("/admin/vendedor");
   return { error: null };
-}
-
-// ---------- Reactions ----------
-
-export async function registerReaction(productId: string) {
-  const supabase = await createClient();
-  // Deliberately no revalidation: the count is cosmetic, the detail view
-  // already bumps it optimistically, and dropping the whole catalog cache on
-  // every visitor tap would be far more expensive than a few stale minutes.
-  await supabase.rpc("increment_reaction", { p_product_id: productId });
 }
 
 // ---------- Orders ----------

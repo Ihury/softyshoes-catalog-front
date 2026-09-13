@@ -38,7 +38,12 @@ export function CartView({ seller, siteUrl }: { seller: SellerSettings; siteUrl:
         }))
       );
       const orderUrl = `${siteUrl || window.location.origin}/pedido/${orderId}`;
-      const parts = [seller.message || "Olá. Segue o pedido selecionado."];
+      // An empty greeting stays empty. The field's placeholder is a suggestion,
+      // not a default — putting words in the seller's mouth when they chose to
+      // leave it blank is not ours to do.
+      const parts: string[] = [];
+      const greeting = seller.message.trim();
+      if (greeting) parts.push(greeting);
       if (seller.send_sizes) {
         parts.push(
           items.map((c) => `${c.qty}x ${c.name} · Numeração ${c.size}`).join("\n")

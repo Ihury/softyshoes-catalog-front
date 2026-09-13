@@ -13,6 +13,10 @@ export type Tag = {
 
 export type Product = {
   id: string;
+  /** The product's address on the storefront: a readable stand-in for the id,
+   *  derived from the name when the model is created and stable from then on
+   *  so a shared link never stops working. */
+  slug: string;
   name: string;
   brand_id: string | null;
   price: number;
@@ -68,7 +72,16 @@ export function normalizeProductRow(row: unknown): Product {
  */
 export type CatalogItem = Pick<
   Product,
-  "id" | "name" | "price" | "old_price" | "photos" | "promotion" | "available" | "ordered" | "featured"
+  | "id"
+  | "slug"
+  | "name"
+  | "price"
+  | "old_price"
+  | "photos"
+  | "promotion"
+  | "available"
+  | "ordered"
+  | "featured"
 > & {
   brand?: Pick<Brand, "id" | "name"> | null;
   /** Tag ids only — the card filters by them and never renders their names,

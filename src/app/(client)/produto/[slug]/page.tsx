@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { getCatalog, getPublicProduct, getRelated } from "@/lib/catalog";
 import { ProductDetail } from "@/components/client/ProductDetail";
 
@@ -14,13 +14,17 @@ export const revalidate = 300;
  */
 export async function generateStaticParams() {
   const products = await getCatalog("Todos", null, null);
-  return products.map((p) => ({ id: p.id }));
+  return products.map((p) => ({ slug: p.slug }));
 }
 
-export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const [product, related] = await Promise.all([getPublicProduct(id), getRelated(id)]);
+export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const [product, related] = await Promise.all([getPublicProduct(slug), getRelated(slug)]);
   if (!product) notFound();
+
+  // Links shared before slugs existed carry the uuid. They still resolve, and
+  // are sent on to the readable address rather than left on the old one.
+  if (product.slug !== slug) permanentRedirect(`/produto/${product.slug}`);
 
   return <ProductDetail product={product} related={related} />;
 }

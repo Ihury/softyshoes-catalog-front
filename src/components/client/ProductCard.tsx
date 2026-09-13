@@ -24,7 +24,7 @@ export function ProductCard({
           is already in the router cache by the time it is tapped. Next only
           does this for links in the viewport, so it stays bounded. */}
       <Link
-        href={`/produto/${product.id}`}
+        href={`/produto/${product.slug}`}
         prefetch
         className="w-full flex flex-col gap-3 text-left transition-transform duration-200 active:scale-[.98]"
       >
