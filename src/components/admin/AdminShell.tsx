@@ -4,8 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { IconChevronLeft, IconChevronRight } from "@/components/icons";
-import { FilterNavigationProvider } from "@/components/client/FilterNavigation";
+import { CatalogFilterProvider } from "@/components/client/CatalogFilter";
 import { signOut } from "@/lib/actions";
+import type { Tag } from "@/lib/types";
 
 const NAV = [
   { href: "/admin", label: "Catálogo" },
@@ -18,10 +19,12 @@ export function AdminShell({
   children,
   productCount,
   sellerReady,
+  tags,
 }: {
   children: React.ReactNode;
   productCount: number;
   sellerReady: boolean;
+  tags: Tag[];
 }) {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
@@ -34,8 +37,10 @@ export function AdminShell({
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // The listing filters in the browser, exactly like the storefront, so a tab
+  // or a search never leaves the page.
   return (
-    <FilterNavigationProvider basePath="/admin">
+    <CatalogFilterProvider tags={tags} basePath="/admin">
     <div className="min-h-dvh flex flex-col md:grid md:grid-cols-[264px_minmax(0,1fr)]">
       {/* desktop sidebar */}
       <aside className="hidden md:flex md:sticky md:top-0 md:h-dvh border-r border-ink-10 px-6 pt-6 pb-8 flex-col gap-8">
@@ -123,6 +128,6 @@ export function AdminShell({
         {children}
       </div>
     </div>
-    </FilterNavigationProvider>
+    </CatalogFilterProvider>
   );
 }

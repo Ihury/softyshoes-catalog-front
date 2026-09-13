@@ -7,6 +7,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 // serving stale content for one more request.
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { parseMoney } from "@/lib/format";
 import { BRANDS_TAG, CATALOG_TAG, SELLER_TAG, TAGS_TAG } from "@/lib/cache-tags";
 import { asList } from "@/lib/types";
@@ -231,10 +232,12 @@ export async function saveProduct(productId: string | null, formData: FormData) 
     savedId = data.id as string;
   }
 
-  const linked = await replaceTags(savedId!, formData.getAll("tags").map(String).filter(Boolean));
+  const linked = await replaceTags(
+    supabase,
+    savedId!,
+    formData.getAll("tags").map(String).filter(Boolean)
+  );
   if (linked) return { error: linked };
-  const coloured = await replaceColors(savedId!, parseColors(formData.get("colors")));
-  if (coloured) return { error: coloured };
 
   revalidateTag(CATALOG_TAG, { expire: 0 });
   revalidateStorefront();
@@ -248,9 +251,16 @@ export async function saveProduct(productId: string | null, formData: FormData) 
  * The form always submits the complete set, so replacing is both simpler and
  * more predictable than diffing — and the join table holds nothing but the two
  * ids, so there is nothing to preserve across the swap.
+ *
+ * Takes the caller's client rather than opening its own: a save already costs
+ * several sequential round trips, and building a second cookie-bound client
+ * added one more for nothing.
  */
-async function replaceTags(productId: string, tagIds: string[]): Promise<string | null> {
-  const supabase = await createClient();
+async function replaceTags(
+  supabase: SupabaseClient,
+  productId: string,
+  tagIds: string[]
+): Promise<string | null> {
   const { error: cleared } = await supabase
     .from("product_tags")
     .delete()
@@ -263,60 +273,6 @@ async function replaceTags(productId: string, tagIds: string[]): Promise<string 
   return error ? error.message : null;
 }
 
-/**
- * Same wholesale replacement for colourways.
- *
- * Safe to recreate the rows because nothing points at a colour by id — a cart
- * line and an order both record the colour's *name*, so a shopper's basket
- * survives the seller re-saving the model.
- */
-async function replaceColors(
-  productId: string,
-  colors: { name: string; photos: string[] }[]
-): Promise<string | null> {
-  const supabase = await createClient();
-  const { error: cleared } = await supabase
-    .from("product_colors")
-    .delete()
-    .eq("product_id", productId);
-  if (cleared) return cleared.message;
-  if (colors.length === 0) return null;
-  const { error } = await supabase.from("product_colors").insert(
-    colors.map((c, i) => ({
-      product_id: productId,
-      name: c.name,
-      photos: c.photos,
-      position: i,
-    }))
-  );
-  return error ? error.message : null;
-}
-
-/**
- * Reads the colour list the form serialized into a single field.
- *
- * Colours are a nested list of lists, which flat form fields cannot express, so
- * the editor sends JSON. Anything malformed is treated as "no colours" rather
- * than throwing: a bad payload must not be able to wipe a model's save.
- */
-function parseColors(raw: FormDataEntryValue | null): { name: string; photos: string[] }[] {
-  if (typeof raw !== "string" || !raw) return [];
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    return [];
-  }
-  return asList<{ name?: unknown; photos?: unknown }>(parsed)
-    .map((c) => ({
-      name: String(c.name ?? "").trim(),
-      photos: asList<unknown>(c.photos).map(String).filter(Boolean).slice(0, MAX_COLOR_PHOTOS),
-    }))
-    .filter((c) => c.name.length > 0);
-}
-
-/** Matches the per-model limit in the product form. */
-const MAX_COLOR_PHOTOS = 15;
 
 export async function deleteProduct(productId: string) {
   const supabase = await createClient();

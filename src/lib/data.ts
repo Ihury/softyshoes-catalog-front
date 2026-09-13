@@ -40,9 +40,7 @@ export async function getProductById(id: string): Promise<Product | null> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("products")
-    .select(
-      "*, brand:brands(*), colors:product_colors(id,name,photos,position), product_tags(tag_id)"
-    )
+    .select("*, brand:brands(*), product_tags(tag_id)")
     .eq("id", id)
     .maybeSingle();
   return data ? normalizeProduct(data as Product) : null;

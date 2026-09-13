@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { ALL_TAB, type CatalogItem, type Tag } from "@/lib/types";
+import { ALL_TAB, type Tag } from "@/lib/types";
 
 /** `tab` holds a tag name, or ALL_TAB. Names rather than ids keep a shared
  *  link readable and match what the tab bar shows. */
@@ -9,11 +9,19 @@ export type Filters = { tab: string; brand: string; q: string };
 
 const DEFAULTS: Filters = { tab: ALL_TAB, brand: "Todas", q: "" };
 
+/** What `match` needs from a row. Both the storefront card and the admin
+ *  listing row satisfy it, so one filter serves both screens. */
+export type Filterable = {
+  name: string;
+  tag_ids?: string[];
+  brand?: { name: string } | null;
+};
+
 type CatalogFilter = {
   filters: Filters;
-  apply: (next: Partial<Filters>) => void;
+  apply: (next: Partial<Filters>, options?: { replace?: boolean }) => void;
   /** Narrows a list with the active filters. */
-  match: (items: CatalogItem[]) => CatalogItem[];
+  match: <T extends Filterable>(items: T[]) => T[];
 };
 
 const Ctx = createContext<CatalogFilter | null>(null);
@@ -54,9 +62,13 @@ function toQuery({ tab, brand, q }: Filters) {
  */
 export function CatalogFilterProvider({
   tags,
+  basePath = "/",
   children,
 }: {
   tags: Tag[];
+  /** Where `apply` writes the query string. The admin listing shares this
+   *  provider, and its filters have to stay on /admin. */
+  basePath?: string;
   children: React.ReactNode;
 }) {
   const [filters, setFilters] = useState<Filters>(DEFAULTS);
@@ -73,19 +85,27 @@ export function CatalogFilterProvider({
     return () => window.removeEventListener("popstate", sync);
   }, [nameKey]);
 
-  const apply = useCallback((next: Partial<Filters>) => {
-    setFilters((prev) => {
-      const merged = { ...prev, ...next };
-      // History only — a server navigation here would undo the whole point.
-      window.history.pushState(null, "", `/${toQuery(merged)}`);
-      return merged;
-    });
-  }, []);
+  const apply = useCallback(
+    (next: Partial<Filters>, options?: { replace?: boolean }) => {
+      setFilters((prev) => {
+        const merged = { ...prev, ...next };
+        // History only — a server navigation here would undo the whole point.
+        // Search replaces rather than pushes: it now runs as the box is typed
+        // in, and one history entry per pause would turn Back into a rewind of
+        // the search box instead of a way out of the page.
+        const url = `${basePath}${toQuery(merged)}`;
+        if (options?.replace) window.history.replaceState(null, "", url);
+        else window.history.pushState(null, "", url);
+        return merged;
+      });
+    },
+    [basePath]
+  );
 
   const activeTagId = tags.find((t) => t.name === filters.tab)?.id ?? null;
 
   const match = useCallback(
-    (items: CatalogItem[]) => {
+    <T extends Filterable>(items: T[]) => {
       const q = filters.q.trim().toLowerCase();
       return items.filter((p) => {
         if (activeTagId && !(p.tag_ids ?? []).includes(activeTagId)) return false;
@@ -99,6 +119,58 @@ export function CatalogFilterProvider({
 
   const value = useMemo(() => ({ filters, apply, match }), [filters, apply, match]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+}
+
+/** Below this a search matches almost everything, so it is treated as empty. */
+const MIN_SEARCH = 2;
+
+/**
+ * Backs a search box that filters as it is typed.
+ *
+ * Returns the field's own value and a setter. Keystrokes settle for `delay`
+ * before the filter is applied, so it runs once per pause rather than once per
+ * letter, and the URL is rewritten in place — one history entry per pause would
+ * turn Back into a rewind of the search box instead of a way off the page.
+ *
+ * Two details that are easy to get wrong:
+ *
+ * - The active search can also change from outside, on a Back/Forward or when
+ *   a shared link is read after mount, and the field has to follow it. It must
+ *   not follow the change *we* caused, though, or a fast typist loses the
+ *   characters typed while our own value was being echoed back.
+ * - A single character clears the filter instead of applying it, so deleting
+ *   back to one letter shows everything again rather than freezing on the
+ *   previous result.
+ */
+export function useCatalogSearch(delay = 250): [string, (v: string) => void] {
+  const { filters, apply } = useCatalogFilter();
+  const active = filters.q;
+
+  const [value, setValue] = useState(active);
+  /** The last search this hook applied, to tell our own echo from a navigation. */
+  const [applied, setApplied] = useState(active);
+  const [synced, setSynced] = useState(active);
+
+  if (synced !== active) {
+    setSynced(active);
+    if (active !== applied) {
+      setApplied(active);
+      setValue(active);
+    }
+  }
+
+  useEffect(() => {
+    const trimmed = value.trim();
+    const next = trimmed.length >= MIN_SEARCH ? trimmed : "";
+    if (next === active) return;
+    const timer = setTimeout(() => {
+      setApplied(next);
+      apply({ q: next }, { replace: true });
+    }, delay);
+    return () => clearTimeout(timer);
+  }, [value, active, apply, delay]);
+
+  return [value, setValue];
 }
 
 export function useCatalogFilter() {

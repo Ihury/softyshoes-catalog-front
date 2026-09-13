@@ -11,20 +11,6 @@ export type Tag = {
   position: number;
 };
 
-/**
- * One colourway of a model, with its own photos.
- *
- * A model without colours is the normal case and behaves exactly as it always
- * has: `products.photos` is the gallery. When colours exist they each bring
- * their own set, and price, sizes and copy stay with the model.
- */
-export type ProductColor = {
-  id: string;
-  name: string;
-  photos: string[];
-  position: number;
-};
-
 export type Product = {
   id: string;
   name: string;
@@ -44,7 +30,6 @@ export type Product = {
   updated_at: string;
   brand?: Brand | null;
   tag_ids?: string[];
-  colors?: ProductColor[];
 };
 
 /**
@@ -60,11 +45,10 @@ export function asList<T>(value: unknown): T[] {
 }
 
 /**
- * Shapes a `products` row that was read with its colour and tag embeds.
+ * Shapes a `products` row that was read with its tag embed.
  *
  * Both readers go through this so the storefront and the admin can never
- * disagree about what a product looks like. Colours arrive in whatever order
- * Postgres returns them and are sorted here by their stored position.
+ * disagree about what a product looks like.
  */
 export function normalizeProductRow(row: unknown): Product {
   const r = row as Product & { product_tags?: { tag_id: string }[] };
@@ -72,9 +56,6 @@ export function normalizeProductRow(row: unknown): Product {
     ...r,
     photos: asList<string>(r.photos),
     sizes: asList<number>(r.sizes),
-    colors: asList<ProductColor>(r.colors)
-      .map((c) => ({ ...c, photos: asList<string>(c.photos) }))
-      .sort((a, b) => a.position - b.position),
     tag_ids: asList<{ tag_id: string }>(r.product_tags).map((t) => t.tag_id),
   };
 }
@@ -108,9 +89,6 @@ export type SellerSettings = {
 export type OrderItem = {
   product_id: string;
   name: string;
-  /** The colourway as it was named when the order was placed, so a later
-   *  rename in the admin cannot rewrite what someone actually asked for. */
-  color: string | null;
   size: number;
   qty: number;
   unit_price: number;

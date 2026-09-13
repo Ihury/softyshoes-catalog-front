@@ -12,7 +12,6 @@ import Link from "next/link";
 import { RelatedCarousel } from "@/components/client/RelatedCarousel";
 import { ReviewSheet } from "@/components/client/ReviewSheet";
 import { useCart } from "@/components/client/CartProvider";
-import { useFavorites } from "@/components/client/FavoritesProvider";
 import { useToast } from "@/components/ui/Toast";
 import { registerReaction } from "@/lib/actions";
 import { num, brl } from "@/lib/format";
@@ -21,12 +20,9 @@ import type { CatalogItem, Product } from "@/lib/types";
 export function ProductDetail({ product, related }: { product: Product; related: CatalogItem[] }) {
   const router = useRouter();
   const { addItem } = useCart();
-  const { isFavorite, toggle } = useFavorites();
   const { flash } = useToast();
 
   const [thumb, setThumb] = useState(0);
-  const [color, setColor] = useState<string | null>(null);
-  const [colorError, setColorError] = useState(false);
   const [qty, setQty] = useState(1);
   const [size, setSize] = useState<number | null>(null);
   const [sizeError, setSizeError] = useState(false);
@@ -35,23 +31,7 @@ export function ProductDetail({ product, related }: { product: Product; related:
   const [reactionCount, setReactionCount] = useState(product.reaction_count);
   const [myRating, setMyRating] = useState(0);
 
-  const fav = isFavorite(product.id);
-  const colors = product.colors ?? [];
-
-  /**
-   * Which photos the gallery is showing.
-   *
-   * A picked colour owns the gallery. Before anything is picked it falls back
-   * to the model's own photos, and then to the first colour's — a model whose
-   * seller put every photo on the colours still opens with something to look
-   * at rather than a grey box.
-   */
-  const picked = colors.find((c) => c.name === color) ?? null;
-  const gallery =
-    (picked?.photos.length ? picked.photos : null) ??
-    (product.photos?.length ? product.photos : null) ??
-    colors.find((c) => c.photos.length)?.photos ??
-    [];
+  const gallery = product.photos ?? [];
   const photos: (string | null)[] = gallery.length ? gallery : [null, null];
   const ratingKey = `softy:myRating:${product.id}`;
 
@@ -79,21 +59,16 @@ export function ProductDetail({ product, related }: { product: Product; related:
   }
 
   function onAddToCart() {
-    // Both checks run so one tap reports everything that is missing.
-    const missingColor = colors.length > 0 && !color;
-    setColorError(missingColor);
-    setSizeError(!size);
-    if (missingColor || !size) return;
-
+    if (!size) {
+      setSizeError(true);
+      return;
+    }
     addItem({
       id: product.id,
       name: product.name,
-      color,
       size,
       unit: product.price,
       qty,
-      // The cart shows the colour that was actually chosen, not the model's
-      // default cover.
       photo: gallery[0] ?? null,
     });
     router.push("/carrinho");
@@ -123,14 +98,6 @@ export function ProductDetail({ product, related }: { product: Product; related:
               <Chip variant="dark">{product.promotion ? "Promoção" : "Disponível"}</Chip>
               <Chip variant="mid">Uso diário</Chip>
             </div>
-            <button
-              type="button"
-              aria-label="Favoritar"
-              onClick={() => toggle(product.id)}
-              className="absolute top-4 right-4 md:top-6 md:right-6 w-[34px] h-[34px] flex items-center justify-center transition-transform active:scale-[.85]"
-            >
-              <IconStar fillColor={fav ? "#090909" : "rgba(250,250,250,.5)"} outlineColor={fav ? undefined : "#FAFAFA"} />
-            </button>
           </div>
 
           {/* The handoff drew two thumbnails for a three-photo model; a model
@@ -194,43 +161,6 @@ export function ProductDetail({ product, related }: { product: Product; related:
             </p>
           ) : null}
           <div className="mt-3 md:hidden text-xs text-ink-25">Selecionado SOFTY.</div>
-
-          {colors.length > 0 ? (
-            <div className="mt-6 md:mt-8">
-              <div className="text-xs text-ink-50 mb-3">Cor</div>
-              <div className="flex flex-wrap gap-3">
-                {colors.map((c) => {
-                  const on = c.name === color;
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      aria-pressed={on}
-                      onClick={() => {
-                        setColor(c.name);
-                        setColorError(false);
-                        // The new colour brings its own photos, so an index
-                        // from the previous set would point at the wrong one.
-                        setThumb(0);
-                      }}
-                      className={
-                        on
-                          ? "h-10 min-w-[116px] px-3 rounded-ui bg-ink text-paper text-sm font-normal transition-transform active:scale-[.97]"
-                          : "h-10 min-w-[116px] px-3 rounded-ui border border-ink-10 bg-paper text-ink-50 text-sm transition-colors hover:border-ink-25 hover:text-ink"
-                      }
-                    >
-                      {c.name}
-                    </button>
-                  );
-                })}
-              </div>
-              {colorError ? (
-                <div role="alert" className="mt-3 text-xs text-danger" style={{ animation: "sfPop .2s ease both" }}>
-                  Selecione uma cor para continuar.
-                </div>
-              ) : null}
-            </div>
-          ) : null}
 
           <div className="mt-6 md:mt-8">
             <div className="hidden md:block text-xs text-ink-50 mb-3">Numeração</div>

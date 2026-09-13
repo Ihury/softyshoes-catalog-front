@@ -25,9 +25,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                 sizes="96px" />
               <div className="flex-1 min-w-0 flex flex-col gap-1">
                 <div className="text-sm font-normal">{item.name}</div>
-                <div className="text-xs text-ink-50">
-                  {item.color ? `${item.color} · ` : ""}Numeração {item.size} · Qtd {item.qty}
-                </div>
+                <div className="text-xs text-ink-50">Numeração {item.size} · Qtd {item.qty}</div>
                 <div className="text-sm font-normal">{brl(item.unit_price)} un.</div>
               </div>
             </div>

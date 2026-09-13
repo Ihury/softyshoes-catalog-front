@@ -5,26 +5,25 @@ import Link from "next/link";
 import { IconChevronDown } from "@/components/icons";
 import { FilterTabs } from "@/components/ui/FilterTabs";
 import { AdminBrandSheet } from "@/components/admin/AdminBrandSheet";
-import { useFilterNavigation } from "@/components/client/FilterNavigation";
-import { TABS, type Tab } from "@/lib/types";
-import type { Brand } from "@/lib/types";
+import { useCatalogFilter, useCatalogSearch } from "@/components/client/CatalogFilter";
+import { ALL_TAB, type Brand, type Tag } from "@/lib/types";
 
-export function AdminListControls({ brands, countLabel }: { brands: Brand[]; countLabel: string }) {
-  const { filters, apply } = useFilterNavigation();
-  const [query, setQuery] = useState(filters.q);
-  const [queryError, setQueryError] = useState(false);
+export function AdminListControls({
+  brands,
+  tags,
+  countLabel,
+}: {
+  brands: Brand[];
+  tags: Tag[];
+  countLabel: string;
+}) {
+  const { filters, apply } = useCatalogFilter();
+  const [query, setQuery] = useCatalogSearch();
   const [brandOpen, setBrandOpen] = useState(false);
 
-  function onSearchSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const v = query.trim();
-    if (v.length === 1) {
-      setQueryError(true);
-      return;
-    }
-    setQueryError(false);
-    apply({ q: v.length >= 2 ? v : "" });
-  }
+  // The same tabs the storefront shows, so the seller filters their own list
+  // by the labels their shoppers see.
+  const tabs = [ALL_TAB, ...tags.map((t) => t.name)];
 
   return (
     <div>
@@ -36,13 +35,12 @@ export function AdminListControls({ brands, countLabel }: { brands: Brand[]; cou
       <div className="mt-3 md:mt-0 md:flex md:items-center md:justify-between md:gap-6">
         <div className="text-md font-normal hidden md:block">Catálogo</div>
         <div className="flex items-center gap-3">
-          <form onSubmit={onSearchSubmit} className="flex gap-3 flex-1 md:flex-none">
+          {/* Submitting is a no-op: the search runs as it is typed. The form
+              stays so Enter dismisses the keyboard on a phone. */}
+          <form onSubmit={(e) => e.preventDefault()} className="flex gap-3 flex-1 md:flex-none">
             <input
               value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setQueryError(false);
-              }}
+              onChange={(e) => setQuery(e.target.value)}
               placeholder="Buscar modelo"
               aria-label="Buscar modelo"
               className="flex-1 md:w-[280px] min-w-0 h-10 px-4 border border-ink-10 rounded-ui bg-paper text-sm text-ink outline-none transition-colors focus:border-ink-25"
@@ -64,14 +62,8 @@ export function AdminListControls({ brands, countLabel }: { brands: Brand[]; cou
           </Link>
         </div>
       </div>
-      {queryError ? (
-        <div role="alert" className="mt-2 text-xs text-danger" style={{ animation: "sfPop .2s ease both" }}>
-          Digite ao menos 2 caracteres para buscar.
-        </div>
-      ) : null}
-
-      <div className="mt-3 md:mt-6">
-        <FilterTabs tabs={TABS} active={filters.tab} onChange={(tab) => apply({ tab: tab as Tab })} inline className="md:inline-flex" />
+      <div className="mt-3 md:mt-6 overflow-x-auto no-scrollbar">
+        <FilterTabs tabs={tabs} active={filters.tab} onChange={(tab) => apply({ tab })} inline className="md:inline-flex" />
       </div>
 
       <AdminBrandSheet

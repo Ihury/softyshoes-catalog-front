@@ -1,6 +1,5 @@
 import { getPublicBrands, getPublicTags } from "@/lib/catalog";
 import { CartProvider } from "@/components/client/CartProvider";
-import { FavoritesProvider } from "@/components/client/FavoritesProvider";
 import { ToastProvider } from "@/components/ui/Toast";
 import { ClientHeader } from "@/components/client/ClientHeader";
 import { CatalogFilterProvider } from "@/components/client/CatalogFilter";
@@ -15,25 +14,23 @@ export default async function ClientLayout({ children }: { children: React.React
 
   return (
     <CartProvider>
-      <FavoritesProvider>
-        <ToastProvider>
-          {/* In the layout so the header search and the catalog filters share
-              one state. It filters in the browser, so no page here has to be
-              rendered per request. */}
-          <CatalogFilterProvider tags={tags}>
-            <div className="min-h-dvh flex flex-col">
-              <ClientHeader brands={brands} />
-              {/* A column, so a page can take the height left under the header
-                  and centre an empty state in what is left. Every page below is
-                  now a flex item, and each one centres itself with mx-auto —
-                  which cancels the cross-axis stretch — so they each carry
-                  w-full. Without it a page sizes to its widest content and
-                  pushes the document past the viewport. */}
-              <main className="flex-1 flex flex-col">{children}</main>
-            </div>
-          </CatalogFilterProvider>
-        </ToastProvider>
-      </FavoritesProvider>
+      <ToastProvider>
+        {/* In the layout so the header search and the catalog filters share
+            one state. It filters in the browser, so no page here has to be
+            rendered per request. */}
+        <CatalogFilterProvider tags={tags}>
+          <div className="min-h-dvh flex flex-col">
+            <ClientHeader brands={brands} />
+            {/* A column, so a page can take the height left under the header
+                and centre an empty state in what is left. Every page below is
+                now a flex item, and each one centres itself with mx-auto —
+                which cancels the cross-axis stretch — so they each carry
+                w-full. Without it a page sizes to its widest content and
+                pushes the document past the viewport. */}
+            <main className="flex-1 flex flex-col">{children}</main>
+          </div>
+        </CatalogFilterProvider>
+      </ToastProvider>
     </CartProvider>
   );
 }

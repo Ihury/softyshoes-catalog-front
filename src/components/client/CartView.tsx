@@ -31,7 +31,6 @@ export function CartView({ seller, siteUrl }: { seller: SellerSettings; siteUrl:
         items.map((c) => ({
           product_id: c.id,
           name: c.name,
-          color: c.color,
           size: c.size,
           qty: c.qty,
           unit_price: c.unit,
@@ -42,13 +41,7 @@ export function CartView({ seller, siteUrl }: { seller: SellerSettings; siteUrl:
       const parts = [seller.message || "Olá. Segue o pedido selecionado."];
       if (seller.send_sizes) {
         parts.push(
-          items
-            .map((c) =>
-              [`${c.qty}x ${c.name}`, c.color, `Numeração ${c.size}`]
-                .filter(Boolean)
-                .join(" · ")
-            )
-            .join("\n")
+          items.map((c) => `${c.qty}x ${c.name} · Numeração ${c.size}`).join("\n")
         );
       }
       if (seller.send_photos) {
@@ -92,9 +85,7 @@ export function CartView({ seller, siteUrl }: { seller: SellerSettings; siteUrl:
                 <div className="text-sm font-normal text-ink whitespace-nowrap overflow-hidden text-ellipsis">
                   {c.name}
                 </div>
-                <div className="text-xs text-ink-50">
-                  {c.color ? `${c.color} · ` : ""}Numeração {c.size}
-                </div>
+                <div className="text-xs text-ink-50">Numeração {c.size}</div>
                 <div className="mt-2 text-sm font-normal text-ink">{brl(c.unit)}</div>
               </div>
               <div className="flex-none flex flex-col md:flex-row items-center md:items-center gap-2 md:gap-6">

@@ -122,9 +122,7 @@ export const getPublicProduct = unstable_cache(
     const data = orThrow(
       await anon
         .from("products")
-        .select(
-          "*, brand:brands(id,name), colors:product_colors(id,name,photos,position), product_tags(tag_id)"
-        )
+        .select("*, brand:brands(id,name), product_tags(tag_id)")
         .eq("id", id)
         .maybeSingle()
     );

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { IconChevronDown } from "@/components/icons";
 import { FilterTabs } from "@/components/ui/FilterTabs";
 import { BrandSheet } from "@/components/client/BrandSheet";
-import { useCatalogFilter } from "@/components/client/CatalogFilter";
+import { useCatalogFilter, useCatalogSearch } from "@/components/client/CatalogFilter";
 import { ALL_TAB, type Brand, type Tag } from "@/lib/types";
 
 export function CatalogControls({
@@ -17,45 +17,21 @@ export function CatalogControls({
   countLabel: React.ReactNode;
 }) {
   const { filters, apply } = useCatalogFilter();
-  const [query, setQuery] = useState(filters.q);
-  const [queryError, setQueryError] = useState(false);
+  const [query, setQuery] = useCatalogSearch();
   const [brandOpen, setBrandOpen] = useState(false);
 
   // "Todos" is not a tag — it is the absence of one — so it is prepended here
   // rather than stored. A seller with no tags simply gets a single tab.
   const tabs = [ALL_TAB, ...tags.map((t) => t.name)];
 
-  // The field owns what is being typed, but the URL owns the active search —
-  // it changes under us on a Back/Forward and when a shared link is read after
-  // mount. Re-seeding on that change keeps the box showing the search the grid
-  // is actually applying, without disturbing typing in between.
-  const [syncedQuery, setSyncedQuery] = useState(filters.q);
-  if (syncedQuery !== filters.q) {
-    setSyncedQuery(filters.q);
-    setQuery(filters.q);
-    setQueryError(false);
-  }
-
-  function onSearchSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const v = query.trim();
-    if (v.length === 1) {
-      setQueryError(true);
-      return;
-    }
-    setQueryError(false);
-    apply({ q: v.length >= 2 ? v : "" });
-  }
-
   return (
     <div>
-      <form onSubmit={onSearchSubmit} className="md:hidden flex gap-3">
+      {/* Submitting is a no-op: the search already ran while it was typed.
+          The form stays so Enter dismisses the keyboard on a phone. */}
+      <form onSubmit={(e) => e.preventDefault()} className="md:hidden flex gap-3">
         <input
           value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setQueryError(false);
-          }}
+          onChange={(e) => setQuery(e.target.value)}
           placeholder="Buscar modelo"
           aria-label="Buscar modelo"
           className="flex-1 min-w-0 h-10 px-4 border border-ink-10 rounded-ui bg-paper text-sm text-ink outline-none transition-colors focus:border-ink-25"
@@ -69,12 +45,6 @@ export function CatalogControls({
           <IconChevronDown stroke="#FAFAFA" />
         </button>
       </form>
-      {queryError ? (
-        <div role="alert" className="mt-2 text-xs text-danger md:hidden" style={{ animation: "sfPop .2s ease both" }}>
-          Digite ao menos 2 caracteres para buscar.
-        </div>
-      ) : null}
-
       <div className="mt-3 md:hidden overflow-x-auto no-scrollbar">
         <FilterTabs tabs={tabs} active={filters.tab} onChange={(tab) => apply({ tab })} />
       </div>

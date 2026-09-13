@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { IconChevronLeft, IconChevronDown, IconCart } from "@/components/icons";
 import { useCart } from "@/components/client/CartProvider";
 import { BrandSheet } from "@/components/client/BrandSheet";
-import { useCatalogFilter } from "@/components/client/CatalogFilter";
+import { useCatalogFilter, useCatalogSearch } from "@/components/client/CatalogFilter";
 import type { Brand } from "@/lib/types";
 
 /** The handoff pairs a 16x16 cart glyph with the word "Carrinho", ink when the
@@ -47,14 +47,7 @@ export function ClientHeader({ brands }: { brands: Brand[] }) {
   const { filters, apply } = useCatalogFilter();
   const [scrolled, setScrolled] = useState(false);
   const [brandOpen, setBrandOpen] = useState(false);
-  const [query, setQuery] = useState(filters.q);
-
-  // Mirrors the URL-owned search back into the field — see CatalogControls.
-  const [syncedQuery, setSyncedQuery] = useState(filters.q);
-  if (syncedQuery !== filters.q) {
-    setSyncedQuery(filters.q);
-    setQuery(filters.q);
-  }
+  const [query, setQuery] = useCatalogSearch();
 
   const showBack = pathname !== "/";
   const showCart = pathname !== "/carrinho";
@@ -73,12 +66,6 @@ export function ClientHeader({ brands }: { brands: Brand[] }) {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
-
-  function onSearchSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const v = query.trim();
-    apply({ q: v.length >= 2 ? v : "" });
-  }
 
   return (
     <>
@@ -117,7 +104,7 @@ export function ClientHeader({ brands }: { brands: Brand[] }) {
               <span className="text-xl leading-none font-normal">SOFTY</span>
               <span className="text-xs text-ink-50">Essential Footwear</span>
             </Link>
-            <form onSubmit={onSearchSubmit} className="flex-1 min-w-0 flex justify-center gap-3">
+            <form onSubmit={(e) => e.preventDefault()} className="flex-1 min-w-0 flex justify-center gap-3">
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
