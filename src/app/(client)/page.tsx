@@ -36,13 +36,12 @@ export default async function HomePage() {
             sizes="(min-width: 1280px) 1184px, 100vw"
             priority
           />
-          <div className="absolute top-4 left-4 md:top-6 md:left-6 flex gap-2">
+          <div className="absolute top-4 left-4 md:top-6 md:left-6">
             {/* Mobile mirrors the model's own chip; desktop labels the slot. */}
             <Chip variant="dark">
               <span className="md:hidden">{featured.promotion ? "Promoção" : "Disponível"}</span>
               <span className="hidden md:inline">Destaque</span>
             </Chip>
-            <Chip variant="mid">Uso diário</Chip>
           </div>
           <div className="absolute left-4 right-4 bottom-4 md:left-6 md:right-auto md:bottom-6 md:max-w-[420px] px-3 py-2 bg-paper-50 backdrop-blur-[20px] rounded-ui flex items-center gap-3 md:gap-4">
             <div className="flex-1 min-w-0 flex flex-col gap-1">

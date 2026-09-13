@@ -84,19 +84,24 @@ export function ProductDetail({ product, related }: { product: Product; related:
         <span>Voltar ao catálogo</span>
       </Link>
 
-      <div className="md:mt-4 md:grid md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:gap-14">
+      {/* The media column is capped rather than given a share of the width:
+          at 1.15fr of a 1280px page the 4/5 portrait grew to ~820px tall,
+          towering over the few hundred pixels of copy beside it. */}
+      <div className="md:mt-4 md:grid md:grid-cols-[minmax(0,440px)_minmax(0,1fr)] md:gap-14">
         <div>
-          <div className="relative h-[339px] md:h-auto md:aspect-[4/5] rounded-ui overflow-hidden">
+          {/* Portrait at every width. The mobile frame used to be a fixed 339px
+                tall, which at phone width came out almost square and cropped the
+                sides off a vertical photo. */}
+          <div className="relative aspect-[4/5] rounded-ui overflow-hidden">
             <ProductImage
               src={photos[thumb] ?? gallery[0]}
               alt={product.name}
               className="absolute inset-0"
-              sizes="(min-width: 768px) 640px, 100vw"
+              sizes="(min-width: 768px) 440px, 100vw"
               priority
             />
-            <div className="absolute top-4 left-4 md:top-6 md:left-6 flex gap-2">
+            <div className="absolute top-4 left-4 md:top-6 md:left-6">
               <Chip variant="dark">{product.promotion ? "Promoção" : "Disponível"}</Chip>
-              <Chip variant="mid">Uso diário</Chip>
             </div>
           </div>
 
