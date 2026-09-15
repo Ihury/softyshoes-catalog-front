@@ -89,7 +89,7 @@ export function SellerView({ seller }: { seller: SellerSettings }) {
         ) : null}
 
         <label className="flex flex-col gap-2">
-          <span className="text-xs text-ink-50">Mensagem enviada com o pedido</span>
+          <span className="text-xs text-ink-50">Mensagem enviada com as fotos</span>
           <textarea
             name="message"
             value={message}

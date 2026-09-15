@@ -6,8 +6,13 @@ import "./globals.css";
 /**
  * The tab icon is a seller setting, so the head has to be built rather than
  * declared: `metadata` and `generateMetadata` cannot both be exported, and the
- * icon is the reason this one is a function. With nothing set, no icon is
- * emitted and the browser falls back to its default.
+ * icon is the reason this one is a function.
+ *
+ * The SOFTY mark is served from `public/` rather than through Next's
+ * `app/icon.svg` convention. That convention emits its own `<link rel="icon">`
+ * on top of this one, so a seller who set an icon got two links in the head and
+ * whichever the browser preferred — this way there is exactly one, and setting
+ * an icon actually replaces the default instead of joining it.
  */
 export async function generateMetadata(): Promise<Metadata> {
   const site = await getPublicSiteSettings();
@@ -15,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: "SOFTY",
     description: "Selection house de calçados essenciais para a rotina urbana.",
-    ...(favicon ? { icons: { icon: favicon } } : {}),
+    icons: { icon: favicon || "/icon.svg" },
   };
 }
 

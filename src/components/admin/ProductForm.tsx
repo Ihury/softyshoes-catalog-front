@@ -170,6 +170,9 @@ export function ProductForm({
   const FLAGS = flagsFrom(filters);
   // The seller's list plus anything this model already carries outside it.
   const sizeGrid = sizeGridFor(catalogSizes, sizes);
+  // What this model carries that the catalog list does not — worth naming, or
+  // the seller cannot tell a one-off 46 from a number everyone stocks.
+  const extraSizes = sizes.filter((n) => !catalogSizes.includes(n));
   const byId = new Map(etiquetas.map((e) => [e.id, e]));
   const picked = etiquetaIds.map((id) => byId.get(id)).filter(Boolean) as Etiqueta[];
   const uploading = pending !== null;
@@ -343,22 +346,23 @@ export function ProductForm({
 
       <div className="md:min-w-0">
       <div className="mt-5 md:mt-0 flex flex-col gap-3 md:gap-4 max-w-[520px] md:max-w-none">
-        <label className="flex flex-col gap-2">
-          <span className="text-xs text-ink-50">Modelo</span>
-          <input
-            name="name"
-            value={name}
-            onChange={(e) => {
-              setName(e.target.value);
-              setNameError(false);
-            }}
-            aria-invalid={nameError}
-            placeholder="Adidas Samba OG"
-            className={`h-10 px-4 border rounded-ui bg-paper text-sm text-ink outline-none transition-colors ${
-              nameError ? "border-danger" : "border-ink-10 focus:border-ink-25"
-            }`}
-          />
-        </label>
+        {/* The handoff draws the name as the screen's title: 30px, no box, a
+            single rule underneath. The label lives in aria-label so the field
+            still announces itself. */}
+        <input
+          name="name"
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value);
+            setNameError(false);
+          }}
+          aria-invalid={nameError}
+          aria-label="Modelo"
+          placeholder="Nome do modelo"
+          className={`w-full bg-paper text-xl leading-[1.1] text-ink outline-none border-0 border-b pb-2 transition-colors ${
+            nameError ? "border-danger" : "border-ink-10 focus:border-ink-25"
+          }`}
+        />
         {nameError ? (
           <div role="alert" className="text-xs text-danger" style={{ animation: "sfPop .2s ease both" }}>
             Informe o nome do modelo.
@@ -557,6 +561,19 @@ export function ProductForm({
           active={sizes}
           onToggle={(n) => setSizes((prev) => (prev.includes(n) ? prev.filter((x) => x !== n) : prev.concat(n).sort((a, b) => a - b)))}
         />
+        {extraSizes.length > 0 ? (
+          <div className="mt-4 flex flex-col gap-2">
+            <span className="text-xs text-ink-25">Particulares deste modelo</span>
+            <div className="flex flex-wrap gap-2">
+              {extraSizes.map((n) => (
+                <span key={n} className="h-10 px-3 rounded-ui bg-ink text-paper text-sm flex items-center">
+                  {n}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
         {/* A number outside the seller's list — a boot in 46, say — is added
             straight to this model rather than to the whole catalog. */}
         <div className="mt-3 flex gap-3">

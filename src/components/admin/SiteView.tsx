@@ -179,7 +179,7 @@ export function SiteView({
                       e.target.value !== b.subtitle &&
                       run(() => updateBanner(b.id, { subtitle: e.target.value }))
                     }
-                    placeholder="Subtítulo"
+                    placeholder="Linha de apoio"
                     aria-label="Subtítulo do banner"
                     className="h-10 px-4 border border-ink-10 rounded-ui bg-paper text-sm text-ink outline-none transition-colors focus:border-ink-25"
                   />

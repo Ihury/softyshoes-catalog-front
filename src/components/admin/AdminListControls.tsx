@@ -18,7 +18,7 @@ export function AdminListControls({
   countLabel: string;
 }) {
   const { filters, active, apply } = useCatalogFilter();
-  const [query, setQuery] = useCatalogSearch();
+  const [query, setQuery, tooShort] = useCatalogSearch();
   const [brandOpen, setBrandOpen] = useState(false);
 
   // The same tabs the storefront shows, so the seller filters their own list
@@ -63,6 +63,12 @@ export function AdminListControls({
           </Link>
         </div>
       </div>
+      {tooShort ? (
+        <div role="status" className="mt-2 text-xs text-ink-25">
+          Digite ao menos 2 caracteres para buscar.
+        </div>
+      ) : null}
+
       {tabs.length ? (
         <div className="mt-3 md:mt-6 overflow-x-auto no-scrollbar">
           <FilterTabs

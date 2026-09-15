@@ -17,7 +17,7 @@ export function CatalogControls({
   countLabel: React.ReactNode;
 }) {
   const { filters, active, apply } = useCatalogFilter();
-  const [query, setQuery] = useCatalogSearch();
+  const [query, setQuery, tooShort] = useCatalogSearch();
   const [brandOpen, setBrandOpen] = useState(false);
 
   // Every tab is a row now, "Todos" included, so a seller who deletes them all
@@ -46,6 +46,11 @@ export function CatalogControls({
           <IconChevronDown stroke="#FAFAFA" />
         </button>
       </form>
+      {tooShort ? (
+        <div role="status" className="mt-2 text-xs text-ink-25">
+          Digite ao menos 2 caracteres para buscar.
+        </div>
+      ) : null}
 
       {/* The count moved onto the phone too: with a fluid grid the number of
           rows no longer tells you how many models matched. */}

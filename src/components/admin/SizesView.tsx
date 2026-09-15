@@ -22,6 +22,7 @@ export function SizesView({ sizes, usage }: { sizes: number[]; usage: Record<num
       hint="É a lista que alimenta a grade de numerações de cada modelo."
       error={error}
     >
+      <div className="text-xs text-ink-50 mb-3">Numerações do catálogo</div>
       <div className="flex flex-wrap gap-2 md:gap-3">
         {sizes.map((n) => {
           const total = usage[n] ?? 0;

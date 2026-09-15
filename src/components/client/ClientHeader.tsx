@@ -47,7 +47,7 @@ export function ClientHeader({ brands }: { brands: Brand[] }) {
   const { filters, apply } = useCatalogFilter();
   const [scrolled, setScrolled] = useState(false);
   const [brandOpen, setBrandOpen] = useState(false);
-  const [query, setQuery] = useCatalogSearch();
+  const [query, setQuery, tooShort] = useCatalogSearch();
 
   const showBack = pathname !== "/";
   const showCart = pathname !== "/carrinho";
@@ -105,13 +105,26 @@ export function ClientHeader({ brands }: { brands: Brand[] }) {
               <span className="text-xs text-ink-50">Essential Footwear</span>
             </Link>
             <form onSubmit={(e) => e.preventDefault()} className="flex-1 min-w-0 flex justify-center gap-3">
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Buscar modelo"
-                aria-label="Buscar modelo"
-                className="flex-1 max-w-[420px] min-w-0 h-10 px-4 border border-ink-10 rounded-ui bg-paper text-sm text-ink outline-none transition-colors focus:border-ink-25"
-              />
+              {/* The hint hangs off the field rather than sitting in the row:
+                  the header is a fixed 40px bar, and a second line in the flow
+                  would push it taller the moment someone types one letter. */}
+              <div className="relative flex-1 max-w-[420px] min-w-0">
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Buscar modelo"
+                  aria-label="Buscar modelo"
+                  className="w-full h-10 px-4 border border-ink-10 rounded-ui bg-paper text-sm text-ink outline-none transition-colors focus:border-ink-25"
+                />
+                {tooShort ? (
+                  <span
+                    role="status"
+                    className="absolute left-0 top-full mt-1 text-xs text-ink-25 whitespace-nowrap"
+                  >
+                    Digite ao menos 2 caracteres para buscar.
+                  </span>
+                ) : null}
+              </div>
               <button
                 type="button"
                 onClick={() => setBrandOpen(true)}

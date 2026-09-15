@@ -83,7 +83,7 @@ export function CouponsView({ rows }: { rows: Coupon[] }) {
             setCode(e.target.value.toUpperCase());
             setError("");
           }}
-          placeholder="SOFTY10"
+          placeholder="CODIGO"
           aria-label="Código do cupom"
           className="flex-1 min-w-[140px] h-10 px-4 border border-ink-10 rounded-ui bg-paper text-sm text-ink outline-none transition-colors focus:border-ink-25"
         />
