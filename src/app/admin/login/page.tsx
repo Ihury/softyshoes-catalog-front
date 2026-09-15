@@ -42,7 +42,7 @@ export default async function AdminLoginPage({
 
         <button
           type="submit"
-          className="mt-2 h-10 rounded-ui bg-ink text-paper text-sm font-normal transition-opacity hover:opacity-[.86] active:scale-[.98]"
+          className="mt-2 h-10 rounded-ui bg-ink text-paper text-sm font-normal transition-opacity hover:opacity-80 active:scale-[.98]"
         >
           Entrar
         </button>

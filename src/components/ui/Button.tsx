@@ -8,12 +8,12 @@ const base =
   "h-10 min-w-[116px] px-3 rounded-ui inline-flex items-center justify-center gap-2 text-sm whitespace-nowrap transition-[opacity,transform,background-color,border-color,color] duration-200 active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none";
 
 const variants: Record<Variant, string> = {
-  solid: "bg-ink text-paper font-normal hover:opacity-[.86]",
+  solid: "bg-ink text-paper font-normal hover:opacity-80",
   glass:
-    "bg-[rgba(9,9,9,0.5)] backdrop-blur-[20px] text-paper font-normal hover:bg-ink",
+    "bg-[rgba(9,9,9,0.5)] backdrop-blur-[20px] text-paper font-normal hover:opacity-80",
   outline:
-    "border border-ink-10 bg-paper-50 backdrop-blur-[20px] text-ink-50 hover:border-ink-25 hover:text-ink",
-  ghost: "text-ink-50 hover:text-ink",
+    "border border-ink-10 bg-paper-50 backdrop-blur-[20px] text-ink-50 hover:border-ink-25",
+  ghost: "text-ink-50 hover:opacity-60",
 };
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {

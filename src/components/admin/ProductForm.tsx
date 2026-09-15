@@ -9,18 +9,47 @@ import { useToast } from "@/components/ui/Toast";
 import { saveProduct, deleteProduct } from "@/lib/actions";
 import { uploadPhoto } from "@/lib/upload";
 import { moneyInput, parseMoney } from "@/lib/format";
-import type { Brand, Product, Tag } from "@/lib/types";
+import { sizeGridFor } from "@/lib/types";
+import type { Brand, Etiqueta, Filter, Product } from "@/lib/types";
 
 /** Upper bound on photos per model. Generous on purpose — it exists to stop a
  *  runaway paste, not to ration what a model can show. */
 const MAX_PHOTOS = 15;
 
-const FLAGS: { key: keyof Pick<Product, "promotion" | "available" | "featured" | "ordered">; label: string }[] = [
-  { key: "promotion", label: "Promoção" },
-  { key: "available", label: "Disponível" },
-  { key: "featured", label: "Destaque na home" },
-  { key: "ordered", label: "Aparece em Pedidos" },
-];
+type FlagKey = keyof Pick<Product, "promotion" | "available" | "featured" | "ordered">;
+
+/** Which flag each filter rule switches. "todos" has no flag behind it. */
+const RULE_FLAG: Partial<Record<string, FlagKey>> = {
+  promo: "promotion",
+  disp: "available",
+  ped: "ordered",
+};
+
+/**
+ * The flag rows, named after the seller's own filters.
+ *
+ * Hard-coding "Promoção" here meant that renaming the tab left the editor
+ * talking about a label that no longer existed anywhere on the site.
+ */
+function flagsFrom(filters: Filter[]): { key: FlagKey; label: string }[] {
+  const rows: { key: FlagKey; label: string }[] = [];
+  for (const f of filters) {
+    const key = RULE_FLAG[f.rule];
+    if (key && !rows.some((r) => r.key === key)) rows.push({ key, label: f.name });
+  }
+  // A rule with no tab pointing at it still needs its switch, or the seller
+  // could no longer mark a model as available.
+  const fallbacks: [FlagKey, string][] = [
+    ["promotion", "Promoção"],
+    ["available", "Disponível"],
+    ["ordered", "Aparece em Pedidos"],
+  ];
+  for (const [key, label] of fallbacks) {
+    if (!rows.some((r) => r.key === key)) rows.push({ key, label });
+  }
+  rows.push({ key: "featured", label: "Destaque na home" });
+  return rows;
+}
 
 /**
  * Resolves once the browser has the image ready to paint (or gave up on it).
@@ -83,7 +112,7 @@ function Photo({
           type="button"
           aria-label={`Remover ${label}`}
           onClick={onRemove}
-          className="absolute top-1 right-1 w-7 h-7 rounded-ui bg-paper-50 backdrop-blur-[14px] flex items-center justify-center text-ink-50 transition-colors hover:text-ink"
+          className="absolute top-1 right-1 w-7 h-7 rounded-ui bg-paper-50 backdrop-blur-[14px] flex items-center justify-center text-ink-50 transition-opacity hover:opacity-60"
         >
           <IconClose />
         </button>
@@ -95,11 +124,15 @@ function Photo({
 export function ProductForm({
   product,
   brands,
-  tags,
+  etiquetas,
+  filters,
+  catalogSizes,
 }: {
   product: Product | null;
   brands: Brand[];
-  tags: Tag[];
+  etiquetas: Etiqueta[];
+  filters: Filter[];
+  catalogSizes: number[];
 }) {
   const { flash } = useToast();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -115,7 +148,14 @@ export function ProductForm({
   const [brandId, setBrandId] = useState(product?.brand_id ?? brands[0]?.id ?? "");
   const [sizes, setSizes] = useState<number[]>(product?.sizes ?? []);
   const [photos, setPhotos] = useState<string[]>(product?.photos ?? []);
-  const [tagIds, setTagIds] = useState<string[]>(product?.tag_ids ?? []);
+  // Ordered, not a set: the first one is the chip the card shows, and
+  // "Tornar principal" is what moves it there.
+  const [etiquetaIds, setEtiquetaIds] = useState<string[]>(
+    (product?.etiquetas ?? []).map((e) => e.id)
+  );
+  /** A number this model carries that is not in the seller's global list. */
+  const [ownSize, setOwnSize] = useState("");
+  const [ownSizeError, setOwnSizeError] = useState("");
   const [flags, setFlags] = useState({
     promotion: product?.promotion ?? false,
     available: product?.available ?? true,
@@ -127,6 +167,11 @@ export function ProductForm({
   /** Local object URL shown while the real upload is still in flight. */
   const [pending, setPending] = useState<string | null>(null);
   const saveAction = saveProduct.bind(null, product?.id ?? null);
+  const FLAGS = flagsFrom(filters);
+  // The seller's list plus anything this model already carries outside it.
+  const sizeGrid = sizeGridFor(catalogSizes, sizes);
+  const byId = new Map(etiquetas.map((e) => [e.id, e]));
+  const picked = etiquetaIds.map((id) => byId.get(id)).filter(Boolean) as Etiqueta[];
   const uploading = pending !== null;
 
   // Object URLs are revoked as soon as the slot stops using them.
@@ -210,7 +255,7 @@ export function ProductForm({
         <div className="hidden md:flex gap-3">
           <button
             type="submit"
-            className="h-10 min-w-[116px] px-3 rounded-ui bg-ink text-paper text-sm font-normal transition-opacity hover:opacity-[.86] active:scale-[.98]"
+            className="h-10 min-w-[116px] px-3 rounded-ui bg-ink text-paper text-sm font-normal transition-opacity hover:opacity-80 active:scale-[.98]"
           >
             Salvar alterações
           </button>
@@ -261,7 +306,7 @@ export function ProductForm({
             type="button"
             disabled={uploading}
             onClick={() => fileInput.current?.click()}
-            className="w-[76px] h-[76px] border border-ink-10 rounded-ui flex items-center justify-center text-ink-50 transition-colors hover:text-ink hover:border-ink-25 disabled:opacity-40"
+            className="w-[76px] h-[76px] border border-ink-10 rounded-ui flex items-center justify-center text-ink-50 transition-[opacity,border-color] hover:opacity-60 hover:border-ink-25 disabled:opacity-40"
           >
             <IconPlus />
           </button>
@@ -289,7 +334,7 @@ export function ProductForm({
           onClick={() => {
             if (confirm("Remover este modelo do catálogo?")) deleteProduct(product.id);
           }}
-          className="hidden md:block mt-6 text-xs text-ink-50 transition-colors hover:text-ink"
+          className="hidden md:block mt-6 text-xs text-ink-50 transition-opacity hover:opacity-60"
         >
           Remover do catálogo
         </button>
@@ -333,7 +378,7 @@ export function ProductForm({
                   className={
                     on
                       ? "h-10 min-w-[116px] px-3 rounded-ui bg-ink text-paper text-sm font-normal transition-transform active:scale-[.97]"
-                      : "h-10 min-w-[116px] px-3 rounded-ui border border-ink-10 bg-paper text-ink-50 text-sm transition-colors hover:border-ink-25 hover:text-ink"
+                      : "h-10 min-w-[116px] px-3 rounded-ui border border-ink-10 bg-paper text-ink-50 text-sm transition-colors hover:border-ink-25"
                   }
                 >
                   {b.name}
@@ -345,33 +390,33 @@ export function ProductForm({
         </div>
 
         <div className="flex flex-col gap-2">
-          <span className="text-xs text-ink-50">Tags</span>
-          {tags.length === 0 ? (
+          <span className="text-xs text-ink-50">Etiquetas</span>
+          {etiquetas.length === 0 ? (
             <div className="text-xs text-ink-25">
-              Nenhuma tag cadastrada ainda —{" "}
-              <Link href="/admin/tags" className="underline">
-                criar tags
+              Nenhuma etiqueta cadastrada ainda —{" "}
+              <Link href="/admin/etiquetas" className="underline">
+                criar etiquetas
               </Link>
               .
             </div>
           ) : (
             <div className="flex flex-wrap gap-3">
-              {tags.map((t) => {
-                const on = tagIds.includes(t.id);
+              {etiquetas.map((t) => {
+                const on = etiquetaIds.includes(t.id);
                 return (
                   <button
                     key={t.id}
                     type="button"
                     aria-pressed={on}
                     onClick={() =>
-                      setTagIds((prev) =>
+                      setEtiquetaIds((prev) =>
                         prev.includes(t.id) ? prev.filter((x) => x !== t.id) : prev.concat(t.id)
                       )
                     }
                     className={
                       on
                         ? "h-10 min-w-[116px] px-3 rounded-ui bg-ink text-paper text-sm font-normal transition-transform active:scale-[.97]"
-                        : "h-10 min-w-[116px] px-3 rounded-ui border border-ink-10 bg-paper text-ink-50 text-sm transition-colors hover:border-ink-25 hover:text-ink"
+                        : "h-10 min-w-[116px] px-3 rounded-ui border border-ink-10 bg-paper text-ink-50 text-sm transition-colors hover:border-ink-25"
                     }
                   >
                     {t.name}
@@ -380,8 +425,42 @@ export function ProductForm({
               })}
             </div>
           )}
-          {tagIds.map((id) => (
-            <input key={id} type="hidden" name="tags" value={id} />
+          {picked.length > 0 ? (
+            <>
+              <div className="flex flex-col">
+                {picked.map((t, i) => (
+                  <div
+                    key={t.id}
+                    className="h-10 flex items-center justify-between gap-3 border-b border-ink-03"
+                  >
+                    <span className={i === 0 ? "text-sm text-ink" : "text-sm text-ink-50"}>
+                      {t.name}
+                    </span>
+                    {i === 0 ? (
+                      <span className="text-xs text-ink-50">Principal</span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setEtiquetaIds((prev) => [t.id, ...prev.filter((x) => x !== t.id)])
+                        }
+                        className="h-[34px] px-3 text-xs text-ink-25 transition-opacity hover:opacity-60"
+                      >
+                        Tornar principal
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div className="text-xs leading-[1.65] text-ink-25">
+                A principal aparece no card. As demais aparecem na página do modelo.
+              </div>
+            </>
+          ) : null}
+          {/* Order matters and `getAll` preserves it, so the DOM order of these
+              is what reaches the database. */}
+          {etiquetaIds.map((id) => (
+            <input key={id} type="hidden" name="etiquetas" value={id} />
           ))}
         </div>
 
@@ -433,7 +512,10 @@ export function ProductForm({
           />
         </label>
         <label className="flex flex-col gap-2">
-          <span className="text-xs text-ink-50">Ficha técnica completa (Ler mais)</span>
+          <span className="text-xs text-ink-50">Texto de &quot;Ler mais&quot;</span>
+          <span className="text-xs text-ink-25 -mt-1">
+            Deixe vazio para não aparecer &quot;Ler mais&quot;.
+          </span>
           <textarea
             name="spec"
             value={spec}
@@ -451,7 +533,7 @@ export function ProductForm({
             key={f.key}
             type="button"
             onClick={() => setFlags((prev) => ({ ...prev, [f.key]: !prev[f.key] }))}
-            className="h-10 border-b border-ink-03 flex items-center justify-between text-sm text-ink-50 transition-colors hover:text-ink"
+            className="h-10 border-b border-ink-03 flex items-center justify-between text-sm text-ink-50 transition-opacity hover:opacity-60"
           >
             {flags[f.key] ? <span className="text-ink font-normal">{f.label}</span> : <span>{f.label}</span>}
             {flags[f.key] ? (
@@ -468,12 +550,56 @@ export function ProductForm({
         ))}
       </div>
 
-      <div className="mt-5 md:mt-4 text-xs text-ink-50">Numerações disponíveis</div>
+      <div className="mt-5 md:mt-4 text-xs text-ink-50">Numeração</div>
       <div className="mt-3 max-w-[720px] md:max-w-none">
         <SizeToggleGrid
+          sizes={sizeGrid}
           active={sizes}
           onToggle={(n) => setSizes((prev) => (prev.includes(n) ? prev.filter((x) => x !== n) : prev.concat(n).sort((a, b) => a - b)))}
         />
+        {/* A number outside the seller's list — a boot in 46, say — is added
+            straight to this model rather than to the whole catalog. */}
+        <div className="mt-3 flex gap-3">
+          <input
+            value={ownSize}
+            inputMode="numeric"
+            onChange={(e) => {
+              setOwnSize(e.target.value.replace(/\D/g, ""));
+              setOwnSizeError("");
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.preventDefault();
+            }}
+            placeholder="45"
+            aria-label="Numeração só deste modelo"
+            className="flex-1 min-w-0 h-10 px-4 border border-ink-10 rounded-ui bg-paper text-sm text-ink outline-none transition-colors focus:border-ink-25"
+          />
+          <button
+            type="button"
+            onClick={() => {
+              const n = Number(ownSize);
+              if (!n) {
+                setOwnSizeError("Informe uma numeração.");
+                return;
+              }
+              if (sizes.includes(n)) {
+                setOwnSizeError("Este modelo já tem essa numeração.");
+                return;
+              }
+              setSizes((prev) => prev.concat(n).sort((a, b) => a - b));
+              setOwnSize("");
+              setOwnSizeError("");
+            }}
+            className="flex-none h-10 min-w-[116px] px-3 rounded-ui bg-ink text-paper text-sm font-normal transition-opacity hover:opacity-80 active:scale-[.97]"
+          >
+            Adicionar
+          </button>
+        </div>
+        {ownSizeError ? (
+          <div role="alert" className="mt-2 text-xs text-danger" style={{ animation: "sfPop .2s ease both" }}>
+            {ownSizeError}
+          </div>
+        ) : null}
         {sizes.map((n) => (
           <input key={n} type="hidden" name="sizes" value={n} />
         ))}
@@ -487,7 +613,7 @@ export function ProductForm({
           onClick={() => {
             if (confirm("Remover este modelo do catálogo?")) deleteProduct(product.id);
           }}
-          className="md:hidden mt-6 text-xs text-ink-50 transition-colors hover:text-ink"
+          className="md:hidden mt-6 text-xs text-ink-50 transition-opacity hover:opacity-60"
         >
           Remover do catálogo
         </button>
@@ -497,7 +623,7 @@ export function ProductForm({
       <div className="md:hidden fixed left-0 right-0 bottom-0 px-6 py-4 flex gap-3 pointer-events-none">
         <button
           type="submit"
-          className="pointer-events-auto flex-1 h-10 rounded-ui bg-[rgba(9,9,9,0.5)] backdrop-blur-[20px] text-paper text-sm font-normal transition-[background-color,transform] hover:bg-ink active:scale-[.98]"
+          className="pointer-events-auto flex-1 h-10 rounded-ui bg-[rgba(9,9,9,0.5)] backdrop-blur-[20px] text-paper text-sm font-normal transition-[opacity,transform] hover:opacity-80 active:scale-[.98]"
         >
           Salvar alterações
         </button>

@@ -96,3 +96,12 @@ export function IconClose({ className, size = 16 }: IconProps) {
     </svg>
   );
 }
+
+/** Three rules — the admin's "Ajustes" button on a phone. */
+export function IconMenu({ className, size = 16 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className} aria-hidden>
+      <path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}

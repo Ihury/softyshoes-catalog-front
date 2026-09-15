@@ -1,16 +1,24 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabase/config";
-import { BRANDS_TAG, CATALOG_TAG, SELLER_TAG, TAGS_TAG } from "@/lib/cache-tags";
-import { asList, normalizeProductRow } from "@/lib/types";
+import {
+  BRANDS_TAG,
+  CATALOG_TAG,
+  FILTERS_TAG,
+  SELLER_TAG,
+  SITE_TAG,
+  SIZES_TAG,
+} from "@/lib/cache-tags";
+import { asList, normalizeEtiquetas, normalizeProductRow } from "@/lib/types";
 import type {
+  Banner,
   Brand,
   CatalogItem,
+  Filter,
   Order,
   Product,
   SellerSettings,
-  Tab,
-  Tag,
+  SiteSettings,
 } from "@/lib/types";
 
 /**
@@ -30,16 +38,21 @@ const anon = createSupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
  * Columns a catalog card needs. Skips description/spec, which are long and only
  * ever read on the detail screen.
  *
- * Embeds are one FK hop each on purpose. PostgREST can also resolve
- * `tags(...)` straight through the junction table, but that relies on it
- * picking the right relationship; `product_tags(tag_id)` follows a single
- * declared foreign key and cannot be ambiguous.
+ * Embeds are one FK hop each on purpose. PostgREST can also resolve `tags(...)`
+ * straight through the junction table, but that relies on it picking the right
+ * relationship; `product_tags -> tags` follows a single declared foreign key
+ * and cannot be ambiguous.
  */
 const CARD_COLUMNS =
-  "id,slug,name,price,old_price,photos,promotion,available,ordered,featured,brand:brands(id,name),product_tags(tag_id)";
+  "id,slug,name,price,old_price,photos,promotion,available,ordered,featured," +
+  "brand:brands(id,name),product_tags(position,tag:tags(id,name,style))";
 
 /** Cached reads share one lifetime: five minutes of staleness at most, and any
- *  admin write clears them immediately via the tags above. */
+ *  admin write clears them immediately via the tags above.
+ *
+ *  The key parts carry a version suffix because Vercel's Data Cache survives a
+ *  deployment: bumping them makes entries written by the previous shape
+ *  unreachable instead of half-readable. */
 const CACHE = { tags: [CATALOG_TAG], revalidate: 300 };
 
 /**
@@ -56,51 +69,44 @@ function orThrow<T>(result: { data: T; error: { message: string } | null }): T {
 }
 
 /**
- * Guarantees `photos` is an array and flattens the tag join into plain ids,
- * so nothing downstream has to know the shape PostgREST returns.
+ * Guarantees `photos` is an array and flattens the etiqueta join into an
+ * ordered list, so nothing downstream has to know the shape PostgREST returns.
  */
 function normalizeCard(row: unknown): CatalogItem {
-  const r = row as CatalogItem & { product_tags?: { tag_id: string }[] };
+  const r = row as CatalogItem & { product_tags?: unknown };
   const { product_tags, ...card } = r;
   return {
     ...card,
     photos: asList<string>(r.photos),
-    tag_ids: asList<{ tag_id: string }>(product_tags).map((t) => t.tag_id),
+    etiquetas: normalizeEtiquetas(product_tags),
   };
 }
 
-async function queryCatalog(tab: Tab, brandId: string | null, q: string | null) {
-  let query = anon.from("products").select(CARD_COLUMNS).order("created_at", { ascending: false });
-
-  if (tab === "Promoção") query = query.eq("promotion", true);
-  if (tab === "Disponíveis") query = query.eq("available", true);
-  if (tab === "Pedidos") query = query.eq("ordered", true);
-  // Filtering in Postgres rather than in JS keeps both the work and the
-  // payload proportional to what actually gets shown.
-  if (brandId) query = query.eq("brand_id", brandId);
-  if (q) query = query.ilike("name", `%${q}%`);
-
-  const data = orThrow(await query);
-  return asList<unknown>(data).map(normalizeCard);
-}
-
 /**
- * Catalog listing for the storefront. `unstable_cache` folds the arguments
- * into the cache key, so each tab/brand/search combination is fetched from
- * Postgres once and then served from cache — re-picking a filter or repeating
- * a search costs nothing. Any admin save drops every variant at once through
- * the shared tag.
+ * The whole catalog, in the seller's manual order.
+ *
+ * Filtering moved into the browser when the tabs became client-side, so this
+ * reader takes no arguments: one query serves every tab, brand and search, and
+ * the result is cached once for everyone.
  */
 export const getCatalog = unstable_cache(
-  (tab: Tab, brandId: string | null, q: string | null): Promise<CatalogItem[]> =>
-    queryCatalog(tab, brandId, q),
-  ["catalog"],
+  async (): Promise<CatalogItem[]> => {
+    const data = orThrow(
+      await anon
+        .from("products")
+        .select(CARD_COLUMNS)
+        .order("position")
+        .order("created_at", { ascending: false })
+    );
+    return asList<unknown>(data).map(normalizeCard);
+  },
+  ["catalog", "v2"],
   CACHE
 );
 
 export const getPublicBrands = unstable_cache(
   async (): Promise<Brand[]> => {
-    return orThrow(await anon.from("brands").select("id,name,created_at").order("name")) ?? [];
+    return orThrow(await anon.from("brands").select("id,name,position,created_at").order("position").order("name")) ?? [];
   },
   ["brands"],
   { tags: [BRANDS_TAG], revalidate: 300 }
@@ -113,7 +119,7 @@ export const getFeatured = unstable_cache(
     );
     return data ? normalizeCard(data) : null;
   },
-  ["featured"],
+  ["featured", "v2"],
   CACHE
 );
 
@@ -124,7 +130,7 @@ export const getPublicProduct = unstable_cache(
   async (slugOrId: string): Promise<Product | null> => {
     const query = anon
       .from("products")
-      .select("*, brand:brands(id,name), product_tags(tag_id)");
+      .select("*, brand:brands(id,name), product_tags(position,tag:tags(id,name,style))");
     const data = orThrow(
       await (UUID.test(slugOrId)
         ? query.eq("id", slugOrId)
@@ -134,20 +140,63 @@ export const getPublicProduct = unstable_cache(
     if (!data) return null;
     return normalizeProductRow(data);
   },
-  ["product"],
+  ["product", "v2"],
   CACHE
 );
 
-/** The seller's filters, in the order they are shown on the storefront. */
-export const getPublicTags = unstable_cache(
-  async (): Promise<Tag[]> => {
+/** The seller's tabs, in the order the storefront shows them. */
+export const getPublicFilters = unstable_cache(
+  async (): Promise<Filter[]> => {
     const data = orThrow(
-      await anon.from("tags").select("id,name,position").order("position").order("name")
+      await anon.from("filters").select("id,name,rule,position").order("position").order("name")
     );
-    return asList<Tag>(data);
+    return asList<Filter>(data);
   },
-  ["tags"],
-  { tags: [TAGS_TAG], revalidate: 300 }
+  ["filters"],
+  { tags: [FILTERS_TAG], revalidate: 300 }
+);
+
+/** The seller's global numbering list. */
+export const getPublicSizes = unstable_cache(
+  async (): Promise<number[]> => {
+    const data = orThrow(await anon.from("catalog_sizes").select("value").order("value"));
+    return asList<{ value: number }>(data).map((r) => r.value);
+  },
+  ["sizes"],
+  { tags: [SIZES_TAG], revalidate: 300 }
+);
+
+export const getPublicSiteSettings = unstable_cache(
+  async (): Promise<SiteSettings> => {
+    const data = orThrow(await anon.from("site_settings").select("*").eq("id", 1).maybeSingle());
+    return (
+      (data as SiteSettings) ?? {
+        id: 1,
+        favicon_url: "",
+        hero_mode: "replace",
+        updated_at: new Date().toISOString(),
+      }
+    );
+  },
+  ["site"],
+  { tags: [SITE_TAG], revalidate: 300 }
+);
+
+/** Only the visible banners, in the seller's order — the hidden ones never
+ *  reach the browser. */
+export const getPublicBanners = unstable_cache(
+  async (): Promise<Banner[]> => {
+    const data = orThrow(
+      await anon
+        .from("banners")
+        .select("id,title,subtitle,tag_id,image_url,visible,position,tag:tags(id,name,style)")
+        .eq("visible", true)
+        .order("position")
+    );
+    return asList<Banner>(data);
+  },
+  ["banners"],
+  { tags: [SITE_TAG], revalidate: 300 }
 );
 
 export const getRelated = unstable_cache(
@@ -157,12 +206,12 @@ export const getRelated = unstable_cache(
         .from("products")
         .select(CARD_COLUMNS)
         .neq("slug", slug)
-        .order("created_at", { ascending: false })
+        .order("position")
         .limit(8)
     );
     return asList<unknown>(data).map(normalizeCard);
   },
-  ["related"],
+  ["related", "v2"],
   CACHE
 );
 
@@ -184,6 +233,25 @@ export const getPublicSeller = unstable_cache(
   ["seller"],
   { tags: [SELLER_TAG], revalidate: 300 }
 );
+
+/**
+ * Checks one discount code.
+ *
+ * `coupons` is deliberately unreadable to anon under RLS, so a visitor cannot
+ * list every code; this goes through a SECURITY DEFINER function that answers a
+ * single question. Never cached — a code the seller just switched off has to
+ * stop working immediately.
+ */
+export async function checkCoupon(
+  code: string
+): Promise<{ code: string; percent: number } | null> {
+  const trimmed = code.trim();
+  if (!trimmed) return null;
+  const { data, error } = await anon.rpc("validate_coupon", { p_code: trimmed });
+  if (error) return null;
+  const hit = asList<{ code: string; percent: number }>(data)[0];
+  return hit ?? null;
+}
 
 /** Orders never change after they are written, so the shared link can be
  *  served from cache for a long while. */

@@ -28,18 +28,21 @@
   --h-step: 34px;
   --h-tile: 40px;
   --h-top: 58px;
-  --sz-thumb: 76px;
-  --sz-thumb-lg: 96px;
+  --sz-thumb: 60px;
+  --sz-thumb-lg: 72px;
   --w-num: 22px;
   --chip-pad: 0 12px;
   --chip-h: 40px;
   --chip-w: 116px;
 
-  --gutter: 24px;
-  --gutter-lg: 48px;
-  --gutter-admin-lg: 40px;
+  /* Fluid rather than stepped: the gutter follows the viewport between a floor
+     and the value the handoff draws, so a 360px phone and a 430px one both get
+     margins in proportion instead of the same 24px. */
+  --gutter: clamp(16px, 5vw, 24px);
+  --gutter-lg: clamp(20px, 4vw, 48px);
+  --gutter-admin-lg: clamp(20px, 3vw, 40px);
   --maxw: 1280px;
-  --sidebar-w: 264px;
+  --sidebar-w: clamp(190px, 20vw, 264px);
 
   --sp-1: 4px;
   --sp-2: 8px;
@@ -159,8 +162,19 @@
     color: var(--ink);
     text-decoration: none;
   }
+
+  /* One hover gesture everywhere: things fade rather than changing colour,
+     picking up a background or growing. Components that need the other two
+     steps use hover:opacity-80 (solid and glass buttons) or hover:opacity-90
+     (cards); borders are the single exception and darken to --ink-25. */
   a:hover {
-    color: var(--ink-50);
+    opacity: 0.6;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--ink-25);
+    opacity: 1;
   }
 
   ::-webkit-scrollbar {

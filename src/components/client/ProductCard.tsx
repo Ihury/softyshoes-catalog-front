@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { Chip } from "@/components/ui/Chip";
+import { EtiquetaChip } from "@/components/ui/Chip";
 import { ProductImage } from "@/components/ui/ProductImage";
+import { principalEtiqueta } from "@/lib/etiquetas";
 import { brl } from "@/lib/format";
 import type { CatalogItem } from "@/lib/types";
 
@@ -8,7 +9,7 @@ export function ProductCard({
   product,
   delayStep = 0,
   className = "",
-  imageClassName = "aspect-[161/220]",
+  imageClassName = "aspect-[4/5]",
 }: {
   product: CatalogItem;
   delayStep?: number;
@@ -16,6 +17,9 @@ export function ProductCard({
   imageClassName?: string;
 }) {
   const delay = (0.05 * Math.min(delayStep, 7)).toFixed(2) + "s";
+  // The card shows one label: the first etiqueta the seller put on the model,
+  // or the default chip when it carries none.
+  const chip = principalEtiqueta(product.etiquetas, product.promotion, "card");
   return (
     <div style={{ animation: "sfUp .6s cubic-bezier(.22,1,.36,1) both", animationDelay: delay }} className={className}>
       {/* The detail route is dynamic, so the default "auto" prefetch would only
@@ -26,25 +30,17 @@ export function ProductCard({
       <Link
         href={`/produto/${product.slug}`}
         prefetch
-        className="w-full flex flex-col gap-3 text-left transition-transform duration-200 active:scale-[.98]"
+        className="w-full flex flex-col gap-3 text-left transition-[transform,opacity] duration-200 hover:opacity-90 active:scale-[.98]"
       >
         <div className="relative w-full">
           <ProductImage
             src={product.photos?.[0]}
             alt={product.name}
             className={`relative w-full ${imageClassName}`}
-            sizes="(min-width: 768px) 288px, 45vw"
+            sizes="(min-width: 768px) 200px, 50vw"
           />
           <span className="absolute top-3 left-3">
-            {product.promotion ? (
-              <Chip variant="dark" blur={12}>
-                Promoção
-              </Chip>
-            ) : (
-              <Chip variant="light" blur={12}>
-                Disponível
-              </Chip>
-            )}
+            <EtiquetaChip name={chip.name} style={chip.style} />
           </span>
         </div>
         <div className="w-full flex flex-col gap-1">

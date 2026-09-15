@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useCart } from "@/components/client/CartProvider";
 import { useToast } from "@/components/ui/Toast";
@@ -9,15 +9,44 @@ import { Stepper } from "@/components/ui/Stepper";
 import { ProductImage } from "@/components/ui/ProductImage";
 import { IconChevronLeft } from "@/components/icons";
 import { brl } from "@/lib/format";
-import { createOrder } from "@/lib/actions";
+import { applyCoupon, createOrder } from "@/lib/actions";
 import type { SellerSettings } from "@/lib/types";
 
+type Discount = { code: string; percent: number };
+
 export function CartView({ seller, siteUrl }: { seller: SellerSettings; siteUrl: string }) {
-  const { items, subtotalLabel, inc, dec, remove, clear } = useCart();
+  const { items, subtotal, subtotalLabel, inc, dec, remove, clear } = useCart();
   const { flash } = useToast();
   const [sending, setSending] = useState(false);
 
+  const [code, setCode] = useState("");
+  const [discount, setDiscount] = useState<Discount | null>(null);
+  const [couponMsg, setCouponMsg] = useState("");
+  const [checking, startCheck] = useTransition();
+
   const digits = seller.phone.replace(/\D/g, "");
+  const total = discount ? subtotal * (1 - discount.percent / 100) : subtotal;
+
+  function onApplyCoupon() {
+    const typed = code.trim();
+    if (!typed) {
+      setDiscount(null);
+      setCouponMsg("");
+      return;
+    }
+    startCheck(async () => {
+      // Checked on the server: `coupons` is unreadable to visitors on purpose,
+      // so nobody can pull the whole list and read off every code.
+      const hit = await applyCoupon(typed);
+      if (hit) {
+        setDiscount(hit);
+        setCouponMsg(`Cupom aplicado. ${hit.percent}% de desconto.`);
+      } else {
+        setDiscount(null);
+        setCouponMsg("Cupom não encontrado.");
+      }
+    });
+  }
 
   async function onSend() {
     if (items.length === 0 || sending) return;
@@ -49,6 +78,15 @@ export function CartView({ seller, siteUrl }: { seller: SellerSettings; siteUrl:
           items.map((c) => `${c.qty}x ${c.name} · Numeração ${c.size}`).join("\n")
         );
       }
+      // The site takes no payment, so the total travels as text and the seller
+      // is the one who honours it at closing time.
+      if (subtotal > 0) {
+        parts.push(
+          discount
+            ? `Total ${brl(total)} com o cupom ${discount.code} de ${discount.percent}%.`
+            : `Total ${brl(subtotal)}.`
+        );
+      }
       if (seller.send_photos) {
         parts.push(`Fotos e detalhes do pedido: ${orderUrl}`);
       } else {
@@ -65,17 +103,69 @@ export function CartView({ seller, siteUrl }: { seller: SellerSettings; siteUrl:
     }
   }
 
+  const couponField = (
+    <div>
+      <div className="flex gap-3">
+        <input
+          value={code}
+          onChange={(e) => {
+            setCode(e.target.value.toUpperCase());
+            setCouponMsg("");
+            setDiscount(null);
+          }}
+          placeholder="Cupom"
+          aria-label="Código do cupom"
+          className="flex-1 min-w-0 h-10 px-4 border border-ink-10 rounded-ui bg-paper text-sm text-ink outline-none transition-colors focus:border-ink-25"
+        />
+        <Button
+          variant="outline"
+          onClick={onApplyCoupon}
+          disabled={!code.trim() || checking}
+          className="flex-none"
+        >
+          Aplicar
+        </Button>
+      </div>
+      {couponMsg ? (
+        <div
+          role="status"
+          className={`mt-2 text-xs ${discount ? "text-ink-50" : "text-danger"}`}
+          style={{ animation: "sfPop .2s ease both" }}
+        >
+          {couponMsg}
+        </div>
+      ) : null}
+    </div>
+  );
+
+  const totals = (
+    <>
+      <div className="flex items-baseline justify-between">
+        <span className="text-sm text-ink-50">Sub Total</span>
+        <span className="text-md font-normal text-ink">{subtotalLabel}</span>
+      </div>
+      {discount ? (
+        <div className="mt-2 flex items-baseline justify-between">
+          <span className="text-xs text-ink-50">Total com desconto</span>
+          <span className="text-md font-normal text-ink">{brl(total)}</span>
+        </div>
+      ) : null}
+    </>
+  );
+
   return (
-    <div className="w-full max-w-[1280px] mx-auto px-6 md:px-12 md:pt-8 pb-[82px] md:pb-14">
+    <div className="w-full max-w-[1280px] mx-auto px-[clamp(16px,5vw,24px)] md:px-[clamp(20px,4vw,48px)] md:pt-8 pb-[82px] md:pb-14">
       <Link
         href="/"
-        className="hidden md:flex h-10 items-center gap-2 text-xs text-ink-50 transition-colors hover:text-ink w-fit"
+        className="hidden md:flex h-10 items-center gap-2 text-xs text-ink-50 transition-opacity hover:opacity-60 w-fit"
       >
         <IconChevronLeft />
         <span>Voltar ao catálogo</span>
       </Link>
 
-      <div className="md:mt-4 md:grid md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] md:gap-14">
+      {/* auto-fit rather than a fixed pair, so the summary drops under the list
+          instead of being squeezed to a sliver on a narrow window. */}
+      <div className="md:mt-4 md:grid md:grid-cols-[repeat(auto-fit,minmax(300px,1fr))] md:gap-14">
         <div>
           <div className="hidden md:block text-xs text-ink-50">Carrinho</div>
           {items.map((c) => (
@@ -84,8 +174,12 @@ export function CartView({ seller, siteUrl }: { seller: SellerSettings; siteUrl:
               className="py-5 md:py-6 border-b border-ink-03 flex items-start gap-4 md:gap-6"
               style={{ animation: "sfRow .3s cubic-bezier(.22,1,.36,1) both" }}
             >
-              <ProductImage src={c.photo} alt={c.name} className="relative flex-none w-[76px] h-[76px] md:w-24 md:h-24"
-                sizes="96px" />
+              <ProductImage
+                src={c.photo}
+                alt={c.name}
+                className="relative flex-none w-[60px] h-[60px] md:w-[72px] md:h-[72px]"
+                sizes="72px"
+              />
               <div className="flex-1 min-w-0 flex flex-col gap-1">
                 <div className="text-sm font-normal text-ink whitespace-nowrap overflow-hidden text-ellipsis">
                   {c.name}
@@ -98,7 +192,7 @@ export function CartView({ seller, siteUrl }: { seller: SellerSettings; siteUrl:
                 <button
                   type="button"
                   onClick={() => remove(c.key)}
-                  className="text-xs text-ink-50 transition-colors hover:text-ink"
+                  className="text-xs text-ink-50 transition-opacity hover:opacity-60"
                 >
                   Remover
                 </button>
@@ -110,26 +204,22 @@ export function CartView({ seller, siteUrl }: { seller: SellerSettings; siteUrl:
             <div className="py-14 md:py-24 text-center text-sm text-ink-50">Seu carrinho está vazio.</div>
           ) : null}
 
-          <div className="md:hidden py-5 border-b border-ink-03 flex items-baseline justify-between">
-            <span className="text-sm text-ink-50">Sub Total</span>
-            <span className="text-md font-normal text-ink">{subtotalLabel}</span>
-          </div>
+          <div className="md:hidden py-5 border-b border-ink-03">{totals}</div>
+          {items.length > 0 ? <div className="md:hidden mt-5">{couponField}</div> : null}
           <div className="md:hidden mt-4 text-xs text-ink-25">Selecionado SOFTY.</div>
         </div>
 
         <div className="hidden md:block">
           <div className="sticky top-[120px]">
-            <div className="flex items-baseline justify-between">
-              <span className="text-sm text-ink-50">Sub Total</span>
-              <span className="text-md font-normal text-ink">{subtotalLabel}</span>
-            </div>
+            {totals}
             <div className="mt-4 flex flex-col gap-3">
+              {items.length > 0 ? couponField : null}
               <Button variant="solid" fullWidth disabled={items.length === 0 || sending} onClick={onSend}>
                 Enviar fotos para o vendedor
               </Button>
               <Link
                 href="/"
-                className="h-10 border border-ink-10 bg-paper text-ink-50 text-sm rounded-ui flex items-center justify-center transition-[border-color,color,transform] hover:border-ink hover:text-ink active:scale-[.98]"
+                className="h-10 border border-ink-10 bg-paper text-ink-50 text-sm rounded-ui flex items-center justify-center transition-[border-color,opacity,transform] hover:border-ink-25 hover:opacity-60 active:scale-[.98]"
               >
                 Continuar no catálogo
               </Link>

@@ -9,9 +9,17 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { parseMoney } from "@/lib/format";
-import { BRANDS_TAG, CATALOG_TAG, SELLER_TAG, TAGS_TAG } from "@/lib/cache-tags";
-import { asList } from "@/lib/types";
-import type { OrderItem } from "@/lib/types";
+import {
+  BRANDS_TAG,
+  CATALOG_TAG,
+  FILTERS_TAG,
+  SELLER_TAG,
+  SITE_TAG,
+  SIZES_TAG,
+} from "@/lib/cache-tags";
+import { asList, FILTER_RULES, ETIQUETA_STYLES } from "@/lib/types";
+import { checkCoupon } from "@/lib/catalog";
+import type { EtiquetaStyle, FilterRule, HeroMode, OrderItem } from "@/lib/types";
 
 // ---------- Auth ----------
 
@@ -52,7 +60,56 @@ function revalidateStorefront() {
   revalidatePath("/", "layout");
 }
 
+/**
+ * Moves a row one place within an ordered list, then renumbers the whole
+ * sequence.
+ *
+ * Positions can be duplicated or all zero in rows written before they mattered,
+ * so trading two values would leave the order unchanged. Rewriting the run from
+ * the reordered list always lands somewhere consistent.
+ */
+async function moveWithin(
+  supabase: SupabaseClient,
+  table: string,
+  id: string,
+  direction: "up" | "down",
+  order: string
+): Promise<string | null> {
+  const { data } = await supabase.from(table).select("id,position").order("position").order(order);
+  const rows = asList<{ id: string; position: number }>(data);
+  const i = rows.findIndex((r) => r.id === id);
+  const j = direction === "up" ? i - 1 : i + 1;
+  if (i < 0 || j < 0 || j >= rows.length) return null;
+
+  const reordered = rows.slice();
+  [reordered[i], reordered[j]] = [reordered[j], reordered[i]];
+  for (let k = 0; k < reordered.length; k++) {
+    const { error } = await supabase
+      .from(table)
+      .update({ position: k + 1 })
+      .eq("id", reordered[k].id);
+    if (error) return error.message;
+  }
+  return null;
+}
+
+/** Where a new row lands: at the end, never jumping to the front. Taken in JS
+ *  rather than with order+limit — these lists hold a handful of rows, and this
+ *  cannot be thrown off by how ties are ordered. */
+async function nextPosition(supabase: SupabaseClient, table: string): Promise<number> {
+  const { data } = await supabase.from(table).select("position");
+  return asList<{ position: number }>(data).reduce((max, r) => Math.max(max, r.position ?? 0), 0) + 1;
+}
+
 // ---------- Brands ----------
+
+function afterBrandWrite() {
+  revalidateTag(BRANDS_TAG, { expire: 0 });
+  revalidateTag(CATALOG_TAG, { expire: 0 });
+  revalidateStorefront();
+  revalidatePath("/admin/marcas");
+  revalidatePath("/admin");
+}
 
 export async function createBrand(name: string) {
   const trimmed = name.trim();
@@ -64,13 +121,10 @@ export async function createBrand(name: string) {
     .ilike("name", trimmed)
     .maybeSingle();
   if (existing) return { error: "Marca já cadastrada." };
-  const { error } = await supabase.from("brands").insert({ name: trimmed });
+  const position = await nextPosition(supabase, "brands");
+  const { error } = await supabase.from("brands").insert({ name: trimmed, position });
   if (error) return { error: error.message };
-  revalidateTag(BRANDS_TAG, { expire: 0 });
-  revalidateTag(CATALOG_TAG, { expire: 0 });
-  revalidateStorefront();
-  revalidatePath("/admin/marcas");
-  revalidatePath("/admin");
+  afterBrandWrite();
   return { error: null };
 }
 
@@ -78,48 +132,129 @@ export async function deleteBrand(id: string) {
   const supabase = await createClient();
   const { error } = await supabase.from("brands").delete().eq("id", id);
   if (error) return { error: error.message };
-  revalidateTag(BRANDS_TAG, { expire: 0 });
-  revalidateTag(CATALOG_TAG, { expire: 0 });
-  revalidateStorefront();
-  revalidatePath("/admin/marcas");
-  revalidatePath("/admin");
+  afterBrandWrite();
   return { error: null };
 }
 
-// ---------- Tags ----------
+export async function moveBrand(id: string, direction: "up" | "down") {
+  const supabase = await createClient();
+  const error = await moveWithin(supabase, "brands", id, direction, "name");
+  if (error) return { error };
+  afterBrandWrite();
+  return { error: null };
+}
+
+// ---------- Filters (the catalog tab bar) ----------
+
+function afterFilterWrite() {
+  revalidateTag(FILTERS_TAG, { expire: 0 });
+  revalidateTag(CATALOG_TAG, { expire: 0 });
+  revalidateStorefront();
+  revalidatePath("/admin/filtros");
+  revalidatePath("/admin");
+}
 
 /**
- * Seller-defined filters. These are what the storefront's tab bar is built
- * from, so every write here has to clear the storefront as well as the tag
- * list itself.
+ * Seller-defined tabs. The name is free text because the behaviour comes from
+ * the rule, not the label — renaming "Promoção" to "Ofertas da semana" changes
+ * nothing about what the tab shows.
  */
-export async function createTag(name: string) {
+export async function createFilter(name: string) {
   const trimmed = name.trim();
-  if (trimmed.length < 2) return { error: "Informe o nome da tag." };
+  if (trimmed.length < 2) return { error: "Informe o nome do filtro." };
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("filters")
+    .select("id")
+    .ilike("name", trimmed)
+    .maybeSingle();
+  if (existing) return { error: "Filtro já cadastrado." };
+
+  const position = await nextPosition(supabase, "filters");
+  const { error } = await supabase
+    .from("filters")
+    .insert({ name: trimmed, rule: "todos", position });
+  if (error) return { error: error.message };
+  afterFilterWrite();
+  return { error: null };
+}
+
+export async function renameFilter(id: string, name: string) {
+  const trimmed = name.trim();
+  if (trimmed.length < 2) return { error: "Informe o nome do filtro." };
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("filters")
+    .select("id")
+    .ilike("name", trimmed)
+    .neq("id", id)
+    .maybeSingle();
+  if (existing) return { error: "Já existe um filtro com esse nome." };
+  const { error } = await supabase.from("filters").update({ name: trimmed }).eq("id", id);
+  if (error) return { error: error.message };
+  afterFilterWrite();
+  return { error: null };
+}
+
+export async function setFilterRule(id: string, rule: FilterRule) {
+  if (!FILTER_RULES.includes(rule)) return { error: "Regra inválida." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("filters").update({ rule }).eq("id", id);
+  if (error) return { error: error.message };
+  afterFilterWrite();
+  return { error: null };
+}
+
+export async function moveFilter(id: string, direction: "up" | "down") {
+  const supabase = await createClient();
+  const error = await moveWithin(supabase, "filters", id, direction, "name");
+  if (error) return { error };
+  afterFilterWrite();
+  return { error: null };
+}
+
+export async function deleteFilter(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("filters").delete().eq("id", id);
+  if (error) return { error: error.message };
+  afterFilterWrite();
+  return { error: null };
+}
+
+// ---------- Etiquetas (the label over a photo) ----------
+
+function afterEtiquetaWrite() {
+  // No cache tag of its own: the storefront never reads the registry on its
+  // own — the names and finishes ride inside each card — so a rename or a
+  // restyle is a catalog change.
+  revalidateTag(CATALOG_TAG, { expire: 0 });
+  revalidateStorefront();
+  revalidatePath("/admin/etiquetas");
+  revalidatePath("/admin");
+}
+
+export async function createEtiqueta(name: string, style: EtiquetaStyle = "escuro") {
+  const trimmed = name.trim();
+  if (trimmed.length < 2) return { error: "Informe o nome da etiqueta." };
+  if (!ETIQUETA_STYLES.includes(style)) return { error: "Acabamento inválido." };
   const supabase = await createClient();
   const { data: existing } = await supabase
     .from("tags")
     .select("id")
     .ilike("name", trimmed)
     .maybeSingle();
-  if (existing) return { error: "Tag já cadastrada." };
+  if (existing) return { error: "Etiqueta já cadastrada." };
 
-  // New tags land at the end of the bar rather than jumping to the front.
-  // The max is taken here rather than with order+limit: there are only ever a
-  // handful of tags, and this cannot be thrown off by how ties are ordered.
-  const { data: rows } = await supabase.from("tags").select("position");
-  const position =
-    asList<{ position: number }>(rows).reduce((max, r) => Math.max(max, r.position ?? 0), 0) + 1;
-
-  const { error } = await supabase.from("tags").insert({ name: trimmed, position });
+  const position = await nextPosition(supabase, "tags");
+  const { error } = await supabase.from("tags").insert({ name: trimmed, style, position });
   if (error) return { error: error.message };
-  afterTagWrite();
+  afterEtiquetaWrite();
   return { error: null };
 }
 
-export async function renameTag(id: string, name: string) {
+export async function renameEtiqueta(id: string, name: string) {
   const trimmed = name.trim();
-  if (trimmed.length < 2) return { error: "Informe o nome da tag." };
+  if (trimmed.length < 2) return { error: "Informe o nome da etiqueta." };
   const supabase = await createClient();
   const { data: existing } = await supabase
     .from("tags")
@@ -127,50 +262,65 @@ export async function renameTag(id: string, name: string) {
     .ilike("name", trimmed)
     .neq("id", id)
     .maybeSingle();
-  if (existing) return { error: "Já existe uma tag com esse nome." };
+  if (existing) return { error: "Já existe uma etiqueta com esse nome." };
   const { error } = await supabase.from("tags").update({ name: trimmed }).eq("id", id);
   if (error) return { error: error.message };
-  afterTagWrite();
+  afterEtiquetaWrite();
   return { error: null };
 }
 
-/** Removing a tag unlinks it from every model — `product_tags` cascades — but
- *  never touches the models themselves. */
-export async function deleteTag(id: string) {
+export async function setEtiquetaStyle(id: string, style: EtiquetaStyle) {
+  if (!ETIQUETA_STYLES.includes(style)) return { error: "Acabamento inválido." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("tags").update({ style }).eq("id", id);
+  if (error) return { error: error.message };
+  afterEtiquetaWrite();
+  return { error: null };
+}
+
+/** Removing an etiqueta unlinks it from every model — `product_tags` cascades —
+ *  but never touches the models themselves. */
+export async function deleteEtiqueta(id: string) {
   const supabase = await createClient();
   const { error } = await supabase.from("tags").delete().eq("id", id);
   if (error) return { error: error.message };
-  afterTagWrite();
+  afterEtiquetaWrite();
   return { error: null };
 }
 
-/** Swaps a tag with its neighbour so the seller can order the tab bar. */
-export async function moveTag(id: string, direction: "up" | "down") {
-  const supabase = await createClient();
-  const { data } = await supabase.from("tags").select("id,position").order("position").order("name");
-  const tags = asList<{ id: string; position: number }>(data);
-  const i = tags.findIndex((t) => t.id === id);
-  const j = direction === "up" ? i - 1 : i + 1;
-  if (i < 0 || j < 0 || j >= tags.length) return { error: null };
+// ---------- Catalog sizes ----------
 
-  // Positions can be duplicated or all zero in old rows, so rewrite the whole
-  // sequence from the reordered list instead of trading two values.
-  const reordered = tags.slice();
-  [reordered[i], reordered[j]] = [reordered[j], reordered[i]];
-  for (let k = 0; k < reordered.length; k++) {
-    const { error } = await supabase.from("tags").update({ position: k + 1 }).eq("id", reordered[k].id);
-    if (error) return { error: error.message };
-  }
-  afterTagWrite();
-  return { error: null };
-}
-
-function afterTagWrite() {
-  revalidateTag(TAGS_TAG, { expire: 0 });
-  revalidateTag(CATALOG_TAG, { expire: 0 });
+function afterSizeWrite() {
+  revalidateTag(SIZES_TAG, { expire: 0 });
   revalidateStorefront();
-  revalidatePath("/admin/tags");
+  revalidatePath("/admin/numeracoes");
   revalidatePath("/admin");
+}
+
+export async function addCatalogSize(value: number) {
+  const n = Math.trunc(Number(value));
+  if (!Number.isFinite(n) || n < 10 || n > 99) return { error: "Informe uma numeração." };
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("catalog_sizes")
+    .select("value")
+    .eq("value", n)
+    .maybeSingle();
+  if (existing) return { error: "Numeração já cadastrada." };
+  const { error } = await supabase.from("catalog_sizes").insert({ value: n });
+  if (error) return { error: error.message };
+  afterSizeWrite();
+  return { error: null };
+}
+
+/** Only the seller's list shrinks. A model that already carries the number keeps
+ *  it, and its own grid still shows it. */
+export async function removeCatalogSize(value: number) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("catalog_sizes").delete().eq("value", value);
+  if (error) return { error: error.message };
+  afterSizeWrite();
+  return { error: null };
 }
 
 // ---------- Products ----------
@@ -225,17 +375,24 @@ export async function saveProduct(productId: string | null, formData: FormData) 
     const { error } = await supabase.from("products").update(record).eq("id", productId);
     if (error) return { error: error.message };
   } else {
-    // The id comes back from the insert because the tags and colours below are
+    // A new model goes to the end of the manual order rather than the top, so
+    // saving one does not rearrange the storefront under the seller.
+    const position = await nextPosition(supabase, "products");
+    // The id comes back from the insert because the etiqueta links below are
     // separate rows that have to point at it.
-    const { data, error } = await supabase.from("products").insert(record).select("id").single();
+    const { data, error } = await supabase
+      .from("products")
+      .insert({ ...record, position })
+      .select("id")
+      .single();
     if (error || !data) return { error: error?.message ?? "Não foi possível salvar o modelo." };
     savedId = data.id as string;
   }
 
-  const linked = await replaceTags(
+  const linked = await replaceEtiquetas(
     supabase,
     savedId!,
-    formData.getAll("tags").map(String).filter(Boolean)
+    formData.getAll("etiquetas").map(String).filter(Boolean)
   );
   if (linked) return { error: linked };
 
@@ -246,33 +403,44 @@ export async function saveProduct(productId: string | null, formData: FormData) 
 }
 
 /**
- * Rewrites a model's tag links from scratch.
+ * Rewrites a model's etiqueta links from scratch.
  *
  * The form always submits the complete set, so replacing is both simpler and
- * more predictable than diffing — and the join table holds nothing but the two
- * ids, so there is nothing to preserve across the swap.
+ * more predictable than diffing. The order matters now — the first one is the
+ * chip the card shows — and `getAll` preserves the order the hidden inputs were
+ * rendered in, so the seller's "Tornar principal" reaches the database for free.
  *
  * Takes the caller's client rather than opening its own: a save already costs
  * several sequential round trips, and building a second cookie-bound client
  * added one more for nothing.
  */
-async function replaceTags(
+async function replaceEtiquetas(
   supabase: SupabaseClient,
   productId: string,
-  tagIds: string[]
+  ids: string[]
 ): Promise<string | null> {
   const { error: cleared } = await supabase
     .from("product_tags")
     .delete()
     .eq("product_id", productId);
   if (cleared) return cleared.message;
-  if (tagIds.length === 0) return null;
+  if (ids.length === 0) return null;
   const { error } = await supabase
     .from("product_tags")
-    .insert(tagIds.map((tag_id) => ({ product_id: productId, tag_id })));
+    .insert(ids.map((tag_id, i) => ({ product_id: productId, tag_id, position: i })));
   return error ? error.message : null;
 }
 
+/** Moves a model one place in the order the storefront shows. */
+export async function moveProduct(id: string, direction: "up" | "down") {
+  const supabase = await createClient();
+  const error = await moveWithin(supabase, "products", id, direction, "created_at");
+  if (error) return { error };
+  revalidateTag(CATALOG_TAG, { expire: 0 });
+  revalidateStorefront();
+  revalidatePath("/admin");
+  return { error: null };
+}
 
 export async function deleteProduct(productId: string) {
   const supabase = await createClient();
@@ -282,6 +450,126 @@ export async function deleteProduct(productId: string) {
   revalidateStorefront();
   revalidatePath("/admin");
   redirect("/admin");
+}
+
+// ---------- Site settings and banners ----------
+
+function afterSiteWrite() {
+  revalidateTag(SITE_TAG, { expire: 0 });
+  revalidateStorefront();
+  revalidatePath("/admin/site");
+  return { error: null };
+}
+
+export async function saveSiteSettings(faviconUrl: string, heroMode: HeroMode) {
+  const mode: HeroMode = heroMode === "both" ? "both" : "replace";
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("site_settings")
+    .update({
+      favicon_url: faviconUrl.trim(),
+      hero_mode: mode,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", 1);
+  if (error) return { error: error.message };
+  return afterSiteWrite();
+}
+
+export async function createBanner() {
+  const supabase = await createClient();
+  const position = await nextPosition(supabase, "banners");
+  const { error } = await supabase
+    .from("banners")
+    .insert({ title: "Novo banner", position });
+  if (error) return { error: error.message };
+  return afterSiteWrite();
+}
+
+export async function updateBanner(
+  id: string,
+  patch: {
+    title?: string;
+    subtitle?: string;
+    tag_id?: string | null;
+    image_url?: string;
+    visible?: boolean;
+  }
+) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("banners").update(patch).eq("id", id);
+  if (error) return { error: error.message };
+  return afterSiteWrite();
+}
+
+export async function moveBanner(id: string, direction: "up" | "down") {
+  const supabase = await createClient();
+  const error = await moveWithin(supabase, "banners", id, direction, "created_at");
+  if (error) return { error };
+  return afterSiteWrite();
+}
+
+export async function deleteBanner(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("banners").delete().eq("id", id);
+  if (error) return { error: error.message };
+  return afterSiteWrite();
+}
+
+// ---------- Coupons ----------
+
+function afterCouponWrite() {
+  revalidatePath("/admin/cupons");
+  return { error: null };
+}
+
+export async function createCoupon(code: string, percent: number) {
+  const trimmed = code.trim().toUpperCase();
+  if (trimmed.length < 3) return { error: "Informe um código com ao menos 3 caracteres." };
+  const n = Math.trunc(Number(percent));
+  if (!Number.isFinite(n) || n < 1 || n > 90) return { error: "Informe um desconto entre 1% e 90%." };
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("coupons")
+    .select("id")
+    .ilike("code", trimmed)
+    .maybeSingle();
+  if (existing) return { error: "Cupom já cadastrado." };
+  const { error } = await supabase.from("coupons").insert({ code: trimmed, percent: n });
+  if (error) return { error: error.message };
+  return afterCouponWrite();
+}
+
+export async function updateCoupon(id: string, patch: { percent?: number; active?: boolean }) {
+  if (patch.percent != null) {
+    const n = Math.trunc(Number(patch.percent));
+    if (!Number.isFinite(n) || n < 1 || n > 90) {
+      return { error: "Informe um desconto entre 1% e 90%." };
+    }
+    patch = { ...patch, percent: n };
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.from("coupons").update(patch).eq("id", id);
+  if (error) return { error: error.message };
+  return afterCouponWrite();
+}
+
+export async function deleteCoupon(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("coupons").delete().eq("id", id);
+  if (error) return { error: error.message };
+  return afterCouponWrite();
+}
+
+/**
+ * Checks one code for a shopper.
+ *
+ * The table is unreadable to visitors on purpose, so this is the only way in
+ * from the storefront — and it answers about a single code rather than handing
+ * back the list.
+ */
+export async function applyCoupon(code: string) {
+  return checkCoupon(code);
 }
 
 // ---------- Seller settings ----------

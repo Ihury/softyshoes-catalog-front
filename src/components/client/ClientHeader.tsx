@@ -80,7 +80,7 @@ export function ClientHeader({ brands }: { brands: Brand[] }) {
             <Link
               href="/"
               aria-label="Voltar"
-              className="absolute left-6 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-ink-50 transition-colors hover:text-ink active:scale-95"
+              className="absolute left-[clamp(16px,5vw,24px)] top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-ink-50 transition-opacity hover:opacity-60 active:scale-95"
             >
               <IconChevronLeft />
             </Link>
@@ -90,7 +90,7 @@ export function ClientHeader({ brands }: { brands: Brand[] }) {
             <Link
               href="/carrinho"
               aria-label={cartLabel(count)}
-              className="absolute right-6 top-1/2 -translate-y-1/2 h-10 flex items-center gap-2 text-xs transition-transform active:scale-95"
+              className="absolute right-[clamp(16px,5vw,24px)] top-1/2 -translate-y-1/2 h-10 flex items-center gap-2 text-xs transition-transform active:scale-95"
             >
               <CartLabel count={count} />
             </Link>
@@ -99,7 +99,7 @@ export function ClientHeader({ brands }: { brands: Brand[] }) {
 
         {/* desktop bar */}
         <div className="hidden md:block bg-paper-50 backdrop-blur-[18px] border-b border-ink-03">
-          <div className="max-w-[1280px] mx-auto px-12 py-5 flex items-center gap-8">
+          <div className="max-w-[1280px] mx-auto px-[clamp(20px,4vw,48px)] py-5 flex items-center gap-8">
             <Link href="/" className="flex-none flex items-baseline gap-2 transition-opacity hover:opacity-60">
               <span className="text-xl leading-none font-normal">SOFTY</span>
               <span className="text-xs text-ink-50">Essential Footwear</span>
@@ -115,7 +115,7 @@ export function ClientHeader({ brands }: { brands: Brand[] }) {
               <button
                 type="button"
                 onClick={() => setBrandOpen(true)}
-                className="flex-none h-10 min-w-[116px] px-3 rounded-ui bg-ink text-paper text-sm flex items-center justify-center gap-2 whitespace-nowrap transition-opacity hover:opacity-[.86] active:scale-[.97]"
+                className="flex-none h-10 min-w-[116px] px-3 rounded-ui bg-ink text-paper text-sm flex items-center justify-center gap-2 whitespace-nowrap transition-opacity hover:opacity-80 active:scale-[.97]"
               >
                 <span>{activeBrand === "Todas" ? "Marca" : activeBrand}</span>
                 <IconChevronDown stroke="#FAFAFA" />

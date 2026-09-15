@@ -55,20 +55,23 @@ export type UploadResult = { url: string | null; error: string | null };
  * already signed in here and the bucket's RLS lets an authenticated writer in,
  * so the browser can talk to storage directly.
  */
-export async function uploadPhoto(file: File): Promise<UploadResult> {
+export async function uploadPhoto(
+  file: File,
+  bucket: "product-photos" | "site-media" = "product-photos"
+): Promise<UploadResult> {
   try {
     const blob = await shrink(file);
     const ext = blob.type === "image/webp" ? "webp" : (file.name.split(".").pop() || "jpg");
     const path = `${crypto.randomUUID()}.${ext}`;
 
     const supabase = createClient();
-    const { error } = await supabase.storage.from("product-photos").upload(path, blob, {
+    const { error } = await supabase.storage.from(bucket).upload(path, blob, {
       contentType: blob.type || file.type,
       upsert: false,
     });
     if (error) return { url: null, error: error.message };
 
-    const { data } = supabase.storage.from("product-photos").getPublicUrl(path);
+    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
     return { url: data.publicUrl, error: null };
   } catch (e) {
     return { url: null, error: e instanceof Error ? e.message : "Não foi possível enviar a foto." };

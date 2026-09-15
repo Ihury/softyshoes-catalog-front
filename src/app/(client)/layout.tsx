@@ -1,4 +1,4 @@
-import { getPublicBrands, getPublicTags } from "@/lib/catalog";
+import { getPublicBrands, getPublicFilters } from "@/lib/catalog";
 import { CartProvider } from "@/components/client/CartProvider";
 import { ToastProvider } from "@/components/ui/Toast";
 import { ClientHeader } from "@/components/client/ClientHeader";
@@ -10,7 +10,7 @@ import { CatalogFilterProvider } from "@/components/client/CatalogFilter";
 export const revalidate = 300;
 
 export default async function ClientLayout({ children }: { children: React.ReactNode }) {
-  const [brands, tags] = await Promise.all([getPublicBrands(), getPublicTags()]);
+  const [brands, filters] = await Promise.all([getPublicBrands(), getPublicFilters()]);
 
   return (
     <CartProvider>
@@ -18,7 +18,7 @@ export default async function ClientLayout({ children }: { children: React.React
         {/* In the layout so the header search and the catalog filters share
             one state. It filters in the browser, so no page here has to be
             rendered per request. */}
-        <CatalogFilterProvider tags={tags}>
+        <CatalogFilterProvider filters={filters}>
           <div className="min-h-dvh flex flex-col">
             <ClientHeader brands={brands} />
             {/* A column, so a page can take the height left under the header

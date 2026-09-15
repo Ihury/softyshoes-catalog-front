@@ -1,16 +1,22 @@
 "use client";
 
 import Link from "next/link";
+import { useTransition } from "react";
 import { ProductImage } from "@/components/ui/ProductImage";
 import { AdminListControls } from "@/components/admin/AdminListControls";
 import { useCatalogFilter } from "@/components/client/CatalogFilter";
+import { IconChevronDown } from "@/components/icons";
+import { moveProduct } from "@/lib/actions";
 import { brl } from "@/lib/format";
-import type { Brand, Tag } from "@/lib/types";
+import type { Brand, Filter, ProductEtiqueta } from "@/lib/types";
 
 /**
  * Exactly what a listing row draws — no description, no spec, no photo array.
  * The rows are filtered in the browser now, so this shape crosses the wire to
- * the client and every field it does not need is paid for 38 times over.
+ * the client and every field it does not need is paid for 59 times over.
+ *
+ * The three flags are here because the tabs filter by rule: without
+ * `promotion` the "Promoção" tab would quietly show nothing.
  */
 export type AdminRow = {
   id: string;
@@ -21,12 +27,15 @@ export type AdminRow = {
   brand: { name: string } | null;
   sizeCount: number;
   status: string;
+  promotion: boolean;
+  available: boolean;
+  ordered: boolean;
   featured: boolean;
-  tag_ids: string[];
+  etiquetas: ProductEtiqueta[];
 };
 
 /** Shared by the header and the rows so the columns cannot drift apart. */
-const COLUMNS = "96px minmax(0,2fr) 120px 160px 120px 120px";
+const COLUMNS = "40px 96px minmax(140px,2fr) minmax(0,1fr) minmax(0,1.2fr) minmax(0,1fr) 74px";
 
 /**
  * The admin catalog listing.
@@ -39,20 +48,26 @@ const COLUMNS = "96px minmax(0,2fr) 120px 160px 120px 120px";
 export function AdminList({
   rows,
   brands,
-  tags,
+  filters,
 }: {
   rows: AdminRow[];
   brands: Brand[];
-  tags: Tag[];
+  filters: Filter[];
 }) {
   const { match } = useCatalogFilter();
+  const [pending, startMove] = useTransition();
   const shown = match(rows);
+
+  // The arrows move a model within the whole catalog, not within whatever the
+  // tabs are showing, so they are only offered on the unfiltered list — an
+  // arrow that jumps a model past rows you cannot see is worse than no arrow.
+  const orderable = shown.length === rows.length;
 
   return (
     <>
       <AdminListControls
         brands={brands}
-        tags={tags}
+        filters={filters}
         countLabel={`${shown.length} ${shown.length === 1 ? "modelo" : "modelos"}`}
       />
 
@@ -62,69 +77,111 @@ export function AdminList({
           className="hidden md:grid gap-4 mt-6 pb-3 border-b border-ink-10 text-xs text-ink-50"
           style={{ gridTemplateColumns: COLUMNS }}
         >
+          <div>#</div>
           <div>Foto</div>
           <div>Modelo</div>
           <div>Marca</div>
           <div>Preço</div>
-          <div>Numerações</div>
-          <div>Status</div>
+          <div>Num.</div>
+          <div>Ordem</div>
         </div>
       ) : null}
 
       <div className="mt-5 md:mt-0 flex-1 flex flex-col">
-        {shown.map((r, i) => (
-          // One row for both breakpoints. Rendering a phone list and a desktop
-          // table separately meant every model shipped twice, images included,
-          // with half of them permanently display:none.
-          <Link
-            key={r.id}
-            href={`/admin/produtos/${r.id}`}
-            className="py-4 border-b border-ink-03 flex items-start gap-4 md:grid md:items-center md:gap-4 transition-opacity hover:opacity-[.62]"
-            style={{
-              gridTemplateColumns: COLUMNS,
-              animation: "sfUp .6s cubic-bezier(.22,1,.36,1) both",
-              animationDelay: `${0.05 * Math.min(i, 7)}s`,
-            }}
-          >
-            <ProductImage
-              src={r.photo}
-              alt={r.name}
-              className="relative flex-none w-[76px] h-[76px] md:w-24 md:h-[72px]"
-              sizes="96px"
-            />
+        {shown.map((r, i) => {
+          const pos = rows.findIndex((x) => x.id === r.id);
+          return (
+            // One row for both breakpoints. Rendering a phone list and a desktop
+            // table separately meant every model shipped twice, images included,
+            // with half of them permanently display:none.
+            <div
+              key={r.id}
+              className="relative py-4 border-b border-ink-03 flex items-start gap-4 md:grid md:items-center md:gap-4"
+              style={{
+                gridTemplateColumns: COLUMNS,
+                animation: "sfUp .6s cubic-bezier(.22,1,.36,1) both",
+                animationDelay: `${0.05 * Math.min(i, 7)}s`,
+              }}
+            >
+              {/* The link covers the row rather than wrapping it: the reorder
+                  arrows sit inside the same row and must not be swallowed by
+                  an anchor. */}
+              <Link
+                href={`/admin/produtos/${r.id}`}
+                aria-label={`Editar ${r.name}`}
+                className="absolute inset-0 z-0 transition-opacity hover:opacity-60"
+              />
 
-            <div className="flex-1 min-w-0 flex flex-col gap-1">
-              <div className="text-sm font-normal text-ink whitespace-nowrap overflow-hidden text-ellipsis">
-                {r.name}
+              <div className="hidden md:block relative z-10 pointer-events-none text-xs text-ink-25 tabular-nums">
+                {String(pos + 1).padStart(2, "0")}
               </div>
-              <div className="md:hidden text-xs text-ink-50 whitespace-nowrap overflow-hidden text-ellipsis">
-                {brl(r.price)} un.
-              </div>
-              <div className="md:hidden text-xs text-ink-25 whitespace-nowrap overflow-hidden text-ellipsis">
-                {r.brand?.name ?? "Sem marca"} · {r.sizeCount} numerações
-              </div>
-              {r.featured ? (
-                <div className="hidden md:block text-xs text-ink-50">Destaque na home</div>
-              ) : null}
-            </div>
 
-            <div className="hidden md:block text-xs text-ink-50">{r.brand?.name ?? "—"}</div>
-            <div className="hidden md:flex flex-col gap-1">
-              <div className="text-sm">{brl(r.price)}</div>
-              {r.old_price ? (
-                <div className="text-xs text-ink-25 line-through">{brl(r.old_price)}</div>
-              ) : null}
-            </div>
-            <div className="hidden md:block text-xs text-ink-50">{r.sizeCount} numerações</div>
+              <div className="relative z-10 pointer-events-none flex-none">
+                <ProductImage
+                  src={r.photo}
+                  alt={r.name}
+                  className="relative w-[76px] h-[76px] md:w-24 md:h-[72px]"
+                  sizes="96px"
+                />
+              </div>
 
-            <div className="flex-none flex flex-col items-end gap-1 md:items-start">
-              <span className="text-xs text-ink-50">{r.status}</span>
-              {r.featured ? (
-                <span className="md:hidden text-xs text-ink font-normal">Destaque</span>
-              ) : null}
+              <div className="relative z-10 pointer-events-none flex-1 min-w-0 flex flex-col gap-1">
+                <div className="text-sm font-normal text-ink whitespace-nowrap overflow-hidden text-ellipsis">
+                  {r.name}
+                </div>
+                <div className="md:hidden text-xs text-ink-50 whitespace-nowrap overflow-hidden text-ellipsis">
+                  {brl(r.price)} un.
+                </div>
+                <div className="md:hidden text-xs text-ink-25 whitespace-nowrap overflow-hidden text-ellipsis">
+                  {String(pos + 1).padStart(2, "0")} · {r.brand?.name ?? "Sem marca"} · {r.sizeCount}{" "}
+                  numerações
+                </div>
+                <div className="hidden md:flex gap-2 text-xs text-ink-50">
+                  {r.featured ? <span>Destaque na home</span> : null}
+                  {r.etiquetas.length ? (
+                    <span className="text-ink-25 truncate">
+                      {r.etiquetas.map((e) => e.name).join(" · ")}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="hidden md:block relative z-10 pointer-events-none text-xs text-ink-50">
+                {r.brand?.name ?? "—"}
+              </div>
+              <div className="hidden md:flex relative z-10 pointer-events-none flex-col gap-1">
+                <div className="text-sm">{brl(r.price)}</div>
+                {r.old_price ? (
+                  <div className="text-xs text-ink-25 line-through">{brl(r.old_price)}</div>
+                ) : null}
+              </div>
+              <div className="hidden md:flex relative z-10 pointer-events-none flex-col gap-1">
+                <span className="text-xs text-ink-50">{r.sizeCount} num.</span>
+                <span className="text-xs text-ink-25">{r.status}</span>
+              </div>
+
+              <div className="relative z-10 flex-none flex flex-col items-end gap-1 md:flex-row md:items-center md:justify-end md:gap-1">
+                <span className="md:hidden text-xs text-ink-50">{r.status}</span>
+                {r.featured ? (
+                  <span className="md:hidden text-xs text-ink font-normal">Destaque</span>
+                ) : null}
+                <div className="flex items-center gap-1">
+                  <MoveButton
+                    label={`Subir ${r.name}`}
+                    up
+                    disabled={!orderable || pos === 0 || pending}
+                    onClick={() => startMove(() => void moveProduct(r.id, "up"))}
+                  />
+                  <MoveButton
+                    label={`Descer ${r.name}`}
+                    disabled={!orderable || pos === rows.length - 1 || pending}
+                    onClick={() => startMove(() => void moveProduct(r.id, "down"))}
+                  />
+                </div>
+              </div>
             </div>
-          </Link>
-        ))}
+          );
+        })}
 
         {shown.length === 0 ? (
           // Centred in what is left below the controls, matching the storefront.
@@ -134,5 +191,29 @@ export function AdminList({
         ) : null}
       </div>
     </>
+  );
+}
+
+function MoveButton({
+  label,
+  up = false,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  up?: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      className="w-8 h-8 flex items-center justify-center text-ink-25 transition-opacity hover:opacity-60 disabled:opacity-25 disabled:pointer-events-none"
+    >
+      <IconChevronDown className={up ? "rotate-180" : ""} />
+    </button>
   );
 }

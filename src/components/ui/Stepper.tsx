@@ -19,7 +19,7 @@ export function Stepper({
         type="button"
         aria-label="Diminuir"
         onClick={() => onChange(Math.max(min, value - 1))}
-        className="w-[34px] h-[34px] flex items-center justify-center text-ink-50 transition-[color,transform] duration-150 hover:text-ink active:scale-90"
+        className="w-[34px] h-[34px] flex items-center justify-center text-ink-50 transition-[opacity,transform] duration-150 hover:opacity-60 active:scale-90"
       >
         <IconMinus />
       </button>
@@ -28,7 +28,7 @@ export function Stepper({
         type="button"
         aria-label="Aumentar"
         onClick={() => onChange(value + 1)}
-        className="w-[34px] h-[34px] flex items-center justify-center text-ink-50 transition-[color,transform] duration-150 hover:text-ink active:scale-90"
+        className="w-[34px] h-[34px] flex items-center justify-center text-ink-50 transition-[opacity,transform] duration-150 hover:opacity-60 active:scale-90"
       >
         <IconPlus />
       </button>

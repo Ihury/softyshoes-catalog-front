@@ -87,11 +87,11 @@ export function RelatedCarousel({ products }: { products: CatalogItem[] }) {
       <div
         ref={ref}
         onPointerDown={onPointerDown}
-        className="no-scrollbar mt-3 md:mt-4 -mx-6 md:mx-0 px-6 md:px-0 flex gap-[18px] md:gap-6 overflow-x-auto cursor-grab"
+        className="no-scrollbar mt-3 md:mt-4 -mx-[clamp(16px,5vw,24px)] md:mx-0 px-[clamp(16px,5vw,24px)] md:px-0 flex gap-3 md:gap-6 overflow-x-auto cursor-grab"
         style={{ touchAction: "pan-x pan-y", scrollPaddingInlineStart: 24 }}
       >
         {products.map((p) => (
-          <div key={p.id} className="flex-none w-[161px] md:w-[236px]" style={{ willChange: "opacity, transform" }}>
+          <div key={p.id} className="flex-none w-[185px] md:w-[184px]" style={{ willChange: "opacity, transform" }}>
             <ProductCard product={p} />
           </div>
         ))}

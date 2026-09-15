@@ -31,7 +31,7 @@ export function AdminBrandSheet({
               key={label}
               type="button"
               onClick={() => onSelect(label)}
-              className="h-10 flex items-center justify-between text-md text-ink-50 transition-colors hover:text-ink"
+              className="h-10 flex items-center justify-between text-md text-ink-50 transition-opacity hover:opacity-60"
               style={{ animation: "sfRow .34s cubic-bezier(.22,1,.36,1) both" }}
             >
               {on ? (
@@ -46,7 +46,7 @@ export function AdminBrandSheet({
         <Link
           href="/admin/marcas"
           onClick={onClose}
-          className="mt-3 h-10 flex items-center justify-between text-sm text-ink-50 border-t border-ink-03 transition-colors hover:text-ink"
+          className="mt-3 h-10 flex items-center justify-between text-sm text-ink-50 border-t border-ink-03 transition-opacity hover:opacity-60"
         >
           <span>Gerenciar marcas</span>
           <IconChevronRight />

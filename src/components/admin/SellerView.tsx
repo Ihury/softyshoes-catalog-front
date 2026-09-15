@@ -47,7 +47,7 @@ export function SellerView({ seller }: { seller: SellerSettings }) {
         <div className="text-xs md:text-md md:font-normal text-ink-50 md:text-ink">Contato do vendedor</div>
         <button
           type="submit"
-          className="hidden md:block h-10 min-w-[116px] px-3 rounded-ui bg-ink text-paper text-sm font-normal transition-opacity hover:opacity-[.86] active:scale-[.98]"
+          className="hidden md:block h-10 min-w-[116px] px-3 rounded-ui bg-ink text-paper text-sm font-normal transition-opacity hover:opacity-80 active:scale-[.98]"
         >
           Salvar contato
         </button>
@@ -107,7 +107,7 @@ export function SellerView({ seller }: { seller: SellerSettings }) {
             key={f.key}
             type="button"
             onClick={() => setFlags((prev) => ({ ...prev, [f.key]: !prev[f.key] }))}
-            className="h-10 border-b border-ink-03 flex items-center justify-between text-sm text-ink-50 transition-colors hover:text-ink"
+            className="h-10 border-b border-ink-03 flex items-center justify-between text-sm text-ink-50 transition-opacity hover:opacity-60"
           >
             {flags[f.key] ? <span className="text-ink font-normal">{f.label}</span> : <span>{f.label}</span>}
             {flags[f.key] ? (
@@ -143,7 +143,7 @@ export function SellerView({ seller }: { seller: SellerSettings }) {
             navigator.clipboard?.writeText(previewLink);
             flash("Link copiado.");
           }}
-          className="h-10 min-w-[116px] px-3 rounded-ui border border-ink-10 bg-paper text-ink-50 text-sm transition-colors hover:border-ink-25 hover:text-ink"
+          className="h-10 min-w-[116px] px-3 rounded-ui border border-ink-10 bg-paper text-ink-50 text-sm transition-colors hover:border-ink-25"
         >
           Copiar link
         </button>
@@ -156,7 +156,7 @@ export function SellerView({ seller }: { seller: SellerSettings }) {
             }
             window.open(previewLink, "_blank");
           }}
-          className="h-10 min-w-[116px] px-3 rounded-ui border border-ink-10 bg-paper text-ink-50 text-sm transition-colors hover:border-ink-25 hover:text-ink"
+          className="h-10 min-w-[116px] px-3 rounded-ui border border-ink-10 bg-paper text-ink-50 text-sm transition-colors hover:border-ink-25"
         >
           Testar envio
         </button>
@@ -174,7 +174,7 @@ export function SellerView({ seller }: { seller: SellerSettings }) {
       <div className="md:hidden mt-6 flex gap-3">
         <button
           type="submit"
-          className="h-10 min-w-[116px] px-3 rounded-ui bg-ink text-paper text-sm font-normal transition-opacity hover:opacity-[.86] active:scale-[.98]"
+          className="h-10 min-w-[116px] px-3 rounded-ui bg-ink text-paper text-sm font-normal transition-opacity hover:opacity-80 active:scale-[.98]"
         >
           Salvar contato
         </button>

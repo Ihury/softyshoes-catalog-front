@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ProductImage } from "@/components/ui/ProductImage";
-import { Chip } from "@/components/ui/Chip";
+import { EtiquetaChip } from "@/components/ui/Chip";
 import { Button } from "@/components/ui/Button";
 import { Stepper } from "@/components/ui/Stepper";
 import { SizeSelectGrid } from "@/components/ui/SizeGrid";
@@ -11,10 +11,19 @@ import { IconChevronLeft } from "@/components/icons";
 import Link from "next/link";
 import { RelatedCarousel } from "@/components/client/RelatedCarousel";
 import { useCart } from "@/components/client/CartProvider";
+import { allEtiquetas } from "@/lib/etiquetas";
 import { brl } from "@/lib/format";
-import type { CatalogItem, Product } from "@/lib/types";
+import { sizeGridFor, type CatalogItem, type Product } from "@/lib/types";
 
-export function ProductDetail({ product, related }: { product: Product; related: CatalogItem[] }) {
+export function ProductDetail({
+  product,
+  related,
+  catalogSizes,
+}: {
+  product: Product;
+  related: CatalogItem[];
+  catalogSizes: number[];
+}) {
   const router = useRouter();
   const { addItem } = useCart();
 
@@ -26,6 +35,19 @@ export function ProductDetail({ product, related }: { product: Product; related:
 
   const gallery = product.photos ?? [];
   const photos: (string | null)[] = gallery.length ? gallery : [null, null];
+
+  // The product page shows every etiqueta the model carries; the card shows
+  // only the first. A model with none falls back to a single default chip.
+  const chips = allEtiquetas(product.etiquetas, product.promotion);
+
+  // The seller's list plus anything this model carries outside it, so a boot in
+  // 46 still renders even though nobody else stocks one.
+  const grid = sizeGridFor(catalogSizes, product.sizes);
+
+  // "Ler mais." used to show even with nothing behind it, and opened an empty
+  // gap. The seller now controls it by leaving the field blank.
+  const hasSpec = !!product.spec?.trim();
+
   function onAddToCart() {
     if (!size) {
       setSizeError(true);
@@ -46,40 +68,41 @@ export function ProductDetail({ product, related }: { product: Product; related:
   }
 
   return (
-    <div className="w-full max-w-[1280px] mx-auto px-6 md:px-12 md:pt-8 pb-[82px] md:pb-14">
+    <div className="w-full max-w-[1280px] mx-auto px-[clamp(16px,5vw,24px)] md:px-[clamp(20px,4vw,48px)] md:pt-8 pb-[82px] md:pb-14">
       <Link
         href="/"
-        className="hidden md:flex h-10 items-center gap-2 text-xs text-ink-50 transition-colors hover:text-ink w-fit"
+        className="hidden md:flex h-10 items-center gap-2 text-xs text-ink-50 transition-opacity hover:opacity-60 w-fit"
       >
         <IconChevronLeft />
         <span>Voltar ao catálogo</span>
       </Link>
 
-      {/* The media column is capped rather than given a share of the width:
-          at 1.15fr of a 1280px page the 4/5 portrait grew to ~820px tall,
-          towering over the few hundred pixels of copy beside it. */}
-      <div className="md:mt-4 md:grid md:grid-cols-[minmax(0,440px)_minmax(0,1fr)] md:gap-14">
+      {/* auto-fit rather than two fixed columns: below about 700px the two
+          tracks stop fitting side by side and the pair stacks on its own,
+          instead of squeezing the photo down to a stamp. */}
+      <div className="md:mt-4 md:grid md:grid-cols-[repeat(auto-fit,minmax(300px,1fr))] md:gap-14">
         <div>
-          {/* Portrait at every width. The mobile frame used to be a fixed 339px
-                tall, which at phone width came out almost square and cropped the
-                sides off a vertical photo. */}
-          <div className="relative aspect-[4/5] rounded-ui overflow-hidden">
+          {/* Portrait at every width, and a capped box rather than full bleed:
+              the photo used to run edge to edge and dominate the page. */}
+          <div className="relative w-[min(100%,248px)] md:w-[min(100%,360px)] aspect-[4/5] mx-auto rounded-ui overflow-hidden">
             <ProductImage
               src={photos[thumb] ?? gallery[0]}
               alt={product.name}
               className="absolute inset-0"
-              sizes="(min-width: 768px) 440px, 100vw"
+              sizes="(min-width: 768px) 360px, 248px"
               priority
             />
-            <div className="absolute top-4 left-4 md:top-6 md:left-6">
-              <Chip variant="dark">{product.promotion ? "Promoção" : "Disponível"}</Chip>
+            <div className="absolute top-4 left-4 flex flex-wrap gap-2">
+              {chips.map((c) => (
+                <EtiquetaChip key={c.name} name={c.name} style={c.style} />
+              ))}
             </div>
           </div>
 
           {/* The handoff drew two thumbnails for a three-photo model; a model
               can now carry up to fifteen, so the row wraps instead of cutting
               the rest off. */}
-          <div className="mt-3 flex flex-wrap gap-3">
+          <div className="mt-3 flex flex-wrap justify-center gap-3">
             {photos.map((src, i) => (
               <button
                 key={i}
@@ -87,15 +110,15 @@ export function ProductDetail({ product, related }: { product: Product; related:
                 aria-label={`Ver foto ${i + 1}`}
                 aria-pressed={thumb === i}
                 onClick={() => setThumb(i)}
-                className="relative w-[76px] h-[76px] md:w-24 md:h-24 rounded-ui overflow-hidden transition-transform active:scale-[.95]"
+                className="relative w-[60px] h-[60px] md:w-[72px] md:h-[72px] rounded-ui overflow-hidden transition-transform active:scale-[.95]"
               >
-                <ProductImage src={src} alt="" className="absolute inset-0" sizes="96px" />
+                <ProductImage src={src} alt="" className="absolute inset-0" sizes="72px" />
                 {thumb !== i ? <span className="absolute inset-0 bg-paper-50" /> : null}
               </button>
             ))}
           </div>
           {gallery.length > 1 ? (
-            <div className="mt-2 text-xs text-ink-25">
+            <div className="mt-2 text-center text-xs text-ink-25">
               A foto escolhida vai junto no pedido.
             </div>
           ) : null}
@@ -108,18 +131,23 @@ export function ProductDetail({ product, related }: { product: Product; related:
             {product.old_price ? <span className="text-ink-25 line-through">{brl(product.old_price)}</span> : null}
           </div>
 
-
           <div className="mt-4 md:hidden flex items-center gap-3">
             <Stepper value={qty} onChange={setQty} />
           </div>
 
           <p className="mt-5 md:mt-6 max-w-[300px] md:max-w-[420px] text-xs leading-[1.65] text-ink-50" style={{ textWrap: "pretty" }}>
             {product.description}{" "}
-            <button type="button" onClick={() => setExpanded((e) => !e)} className="text-xs text-ink font-normal">
-              {expanded ? "Ler menos." : "Ler mais."}
-            </button>
+            {hasSpec ? (
+              <button
+                type="button"
+                onClick={() => setExpanded((e) => !e)}
+                className="text-xs text-ink font-normal transition-opacity hover:opacity-60"
+              >
+                {expanded ? "Ler menos." : "Ler mais."}
+              </button>
+            ) : null}
           </p>
-          {expanded && product.spec ? (
+          {expanded && hasSpec ? (
             <p
               className="mt-2 max-w-[300px] md:max-w-[420px] text-xs leading-[1.65] text-ink-50"
               style={{ animation: "sfPop .24s ease both", textWrap: "pretty" }}
@@ -132,6 +160,7 @@ export function ProductDetail({ product, related }: { product: Product; related:
           <div className="mt-6 md:mt-8">
             <div className="hidden md:block text-xs text-ink-50 mb-3">Numeração</div>
             <SizeSelectGrid
+              sizes={grid}
               availableSizes={product.sizes}
               selected={size}
               onSelect={(n) => {
@@ -165,7 +194,6 @@ export function ProductDetail({ product, related }: { product: Product; related:
           Adicionar ao carrinho
         </Button>
       </div>
-
     </div>
   );
 }

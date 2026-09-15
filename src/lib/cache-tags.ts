@@ -4,4 +4,6 @@
 export const CATALOG_TAG = "catalog";
 export const BRANDS_TAG = "brands";
 export const SELLER_TAG = "seller";
-export const TAGS_TAG = "tags";
+export const FILTERS_TAG = "filters";
+export const SIZES_TAG = "sizes";
+export const SITE_TAG = "site";

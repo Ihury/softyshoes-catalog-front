@@ -2,9 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
-    // The catalog grid is 2 columns on a phone and 4 on a desktop, so the
-    // default breakpoint ladder generates sizes the layout never asks for.
-    imageSizes: [96, 161, 236, 256, 384],
+    // The grid is fluid now — columns are at least 150px on a phone and 200px
+    // on a desktop — so these are the widths the layout actually asks for. The
+    // default ladder generates a dozen sizes nothing ever requests.
+    imageSizes: [60, 72, 96, 150, 185, 200, 256, 384],
     deviceSizes: [430, 640, 828, 1080, 1280, 1920],
     formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 60 * 60 * 24 * 30,

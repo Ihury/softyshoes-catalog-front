@@ -14,7 +14,10 @@ export function CatalogGrid({ products }: { products: CatalogItem[] }) {
 
   return (
     <>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-x-6 md:gap-y-8">
+      {/* Fluid rather than a fixed column count: the columns follow the width
+          available, so a narrow phone gets two and a wide desktop gets five
+          without a breakpoint for each. */}
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] md:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3 md:gap-x-6 md:gap-y-8">
         {shown.map((p, i) => (
           <ProductCard key={p.id} product={p} delayStep={i} />
         ))}
@@ -34,7 +37,7 @@ export function CatalogGrid({ products }: { products: CatalogItem[] }) {
   );
 }
 
-/** The model count beside the desktop filter bar, which also follows the filters. */
+/** The model count beside the filter bar, which also follows the filters. */
 export function CatalogCount({ products }: { products: CatalogItem[] }) {
   const { match } = useCatalogFilter();
   const n = match(products).length;

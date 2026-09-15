@@ -30,7 +30,7 @@ export function BrandSheet({
               key={label}
               type="button"
               onClick={() => onSelect(label)}
-              className="h-10 flex items-center justify-between text-md text-ink-50 transition-colors hover:text-ink"
+              className="h-10 flex items-center justify-between text-md text-ink-50 transition-opacity hover:opacity-60"
               style={{ animation: "sfRow .34s cubic-bezier(.22,1,.36,1) both" }}
             >
               {on ? (

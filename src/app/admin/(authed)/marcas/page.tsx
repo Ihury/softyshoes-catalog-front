@@ -18,13 +18,14 @@ export default async function BrandsPage() {
     return {
       id: b.id,
       name: b.name,
+      position: b.position ?? 0,
       total: items.length,
       published: items.filter((p) => p.available).length,
     };
   });
 
   return (
-    <div className="px-6 md:px-10 md:pt-8 pb-[82px] md:pb-14 max-w-[720px] md:max-w-[800px]">
+    <div className="px-[clamp(16px,5vw,24px)] md:px-[clamp(20px,3vw,40px)] md:pt-8 pb-[82px] md:pb-14 max-w-[720px] md:max-w-[800px]">
       <BrandsView rows={rows} />
     </div>
   );
