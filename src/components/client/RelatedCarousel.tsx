@@ -91,7 +91,17 @@ export function RelatedCarousel({ products }: { products: CatalogItem[] }) {
         style={{ touchAction: "pan-x pan-y", scrollPaddingInlineStart: 24 }}
       >
         {products.map((p) => (
-          <div key={p.id} className="flex-none w-[185px] md:w-[184px]" style={{ willChange: "opacity, transform" }}>
+          // The same width as a card in the grid above, so the two rows read as
+          // one catalog rather than two sizes of the same thing. A scroller has
+          // no auto-fill to copy, so the grid's column count is reproduced per
+          // breakpoint against the same container width and the same gaps —
+          // 2 up to md, then 3, 4 and 5, which is exactly where
+          // `auto-fill minmax(150/200px, 1fr)` lands.
+          <div
+            key={p.id}
+            className="flex-none w-[calc((100%-12px)/2)] md:w-[calc((100%-48px)/3)] lg:w-[calc((100%-72px)/4)] xl:w-[calc((100%-96px)/5)]"
+            style={{ willChange: "opacity, transform" }}
+          >
             <ProductCard product={p} />
           </div>
         ))}
