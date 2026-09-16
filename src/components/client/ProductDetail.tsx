@@ -81,10 +81,14 @@ export function ProductDetail({
           tracks stop fitting side by side and the pair stacks on its own,
           instead of squeezing the photo down to a stamp. */}
       <div className="md:mt-4 md:grid md:grid-cols-[repeat(auto-fit,minmax(300px,1fr))] md:gap-14">
-        <div>
+        {/* One box holds the photo and everything under it, so the thumbnails
+            and the caption start at the photo's left edge. Centring them
+            independently left a single thumbnail floating in the middle of a
+            column much wider than the photo. */}
+        <div className="w-[min(100%,248px)] md:w-[min(100%,360px)] mx-auto">
           {/* Portrait at every width, and a capped box rather than full bleed:
               the photo used to run edge to edge and dominate the page. */}
-          <div className="relative w-[min(100%,248px)] md:w-[min(100%,360px)] aspect-[4/5] mx-auto rounded-ui overflow-hidden">
+          <div className="relative w-full aspect-[4/5] rounded-ui overflow-hidden">
             <ProductImage
               src={photos[thumb] ?? gallery[0]}
               alt={product.name}
@@ -102,7 +106,7 @@ export function ProductDetail({
           {/* The handoff drew two thumbnails for a three-photo model; a model
               can now carry up to fifteen, so the row wraps instead of cutting
               the rest off. */}
-          <div className="mt-3 flex flex-wrap justify-center gap-3">
+          <div className="mt-3 flex flex-wrap gap-3">
             {photos.map((src, i) => (
               <button
                 key={i}
@@ -118,7 +122,7 @@ export function ProductDetail({
             ))}
           </div>
           {gallery.length > 1 ? (
-            <div className="mt-2 text-center text-xs text-ink-25">
+            <div className="mt-2 text-xs text-ink-25">
               A foto escolhida vai junto no pedido.
             </div>
           ) : null}
