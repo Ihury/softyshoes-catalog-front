@@ -37,7 +37,12 @@ export function ProductCard({
             src={product.photos?.[0]}
             alt={product.name}
             className={`relative w-full ${imageClassName}`}
-            sizes="(min-width: 768px) 200px, 50vw"
+            // 200px was the grid's *minimum* column, not its width: auto-fill
+            // spreads the leftover space, so the card is 217-220px from 768px
+            // up. On a 2x screen that understatement picked the 430 candidate
+            // for a 439px slot — small, but enlargement all the same, and the
+            // one place the browser was choosing for us.
+            sizes="(min-width: 768px) 224px, 50vw"
           />
           <span className="absolute top-3 left-3">
             <EtiquetaChip name={chip.name} style={chip.style} />
