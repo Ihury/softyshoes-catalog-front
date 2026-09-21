@@ -85,15 +85,16 @@ export function ProductDetail({
             and the caption start at the photo's left edge. Centring them
             independently left a single thumbnail floating in the middle of a
             column much wider than the photo. */}
-        <div className="w-[min(100%,248px)] md:w-[min(100%,360px)] mx-auto">
-          {/* Portrait at every width, and a capped box rather than full bleed:
-              the photo used to run edge to edge and dominate the page. */}
-          <div className="relative w-full aspect-[4/5] rounded-ui overflow-hidden">
+        <div className="w-full md:w-[min(100%,360px)] md:mx-auto">
+          {/* On a phone the photo takes the column it is given and stands at
+              3:4 — it is the one thing on the page worth the room. The desktop
+              keeps the capped 360px box the handoff draws, at 4:5. */}
+          <div className="relative w-full aspect-[3/4] md:aspect-[4/5] rounded-ui overflow-hidden">
             <ProductImage
               src={photos[thumb] ?? gallery[0]}
               alt={product.name}
               className="absolute inset-0"
-              sizes="(min-width: 768px) 360px, 248px"
+              sizes="(min-width: 768px) 360px, 100vw"
               priority
             />
             <div className="absolute top-4 left-4 flex flex-wrap gap-2">

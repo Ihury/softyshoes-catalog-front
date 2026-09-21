@@ -167,8 +167,14 @@
      picking up a background or growing. Components that need the other two
      steps use hover:opacity-80 (solid and glass buttons) or hover:opacity-90
      (cards); borders are the single exception and darken to --ink-25. */
-  a:hover {
-    opacity: 0.6;
+  /* Guarded: on a touch screen there is no hover to leave, so a tap left the
+     card sitting at 60% until something else was tapped. Tailwind's own
+     `hover:` variants already compile behind this query — this rule was the one
+     that did not. */
+  @media (hover: hover) {
+    a:hover {
+      opacity: 0.6;
+    }
   }
 
   input::placeholder,

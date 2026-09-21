@@ -25,11 +25,26 @@ const RULE_FLAG: Partial<Record<string, FlagKey>> = {
   ped: "ordered",
 };
 
+/** Every switch the form can save, in the order they are drawn. The hidden
+ *  inputs are rendered from this list rather than from the visible rows, so a
+ *  switch the seller cannot see still round-trips its stored value instead of
+ *  being saved as false. */
+export const ALL_FLAGS: FlagKey[] = ["promotion", "available", "ordered", "featured"];
+
 /**
  * The flag rows, named after the seller's own filters.
  *
- * Hard-coding "Promoção" here meant that renaming the tab left the editor
- * talking about a label that no longer existed anywhere on the site.
+ * A switch takes the name of the filter that uses its rule: hard-coding
+ * "Promoção" here meant that renaming the tab left the editor talking about a
+ * label that no longer existed anywhere on the site.
+ *
+ * A switch only disappears with its filter when the filter is the only thing it
+ * drove. That is true of `ordered` alone — delete the "Pedidos" tab and nothing
+ * reads the flag any more, so continuing to ask about pedidos is noise. The
+ * other three earn their place whatever the seller does to the tabs:
+ * `promotion` picks the chip a model shows when it carries no etiqueta,
+ * `featured` is the model the home falls back to, and `available` is what the
+ * listing here reads as Publicado or Pausado.
  */
 function flagsFrom(filters: Filter[]): { key: FlagKey; label: string }[] {
   const rows: { key: FlagKey; label: string }[] = [];
@@ -37,15 +52,11 @@ function flagsFrom(filters: Filter[]): { key: FlagKey; label: string }[] {
     const key = RULE_FLAG[f.rule];
     if (key && !rows.some((r) => r.key === key)) rows.push({ key, label: f.name });
   }
-  // A rule with no tab pointing at it still needs its switch, or the seller
-  // could no longer mark a model as available.
-  const fallbacks: [FlagKey, string][] = [
-    ["promotion", "Promoção"],
-    ["available", "Disponível"],
-    ["ordered", "Aparece em Pedidos"],
-  ];
-  for (const [key, label] of fallbacks) {
-    if (!rows.some((r) => r.key === key)) rows.push({ key, label });
+  if (!rows.some((r) => r.key === "available")) {
+    rows.unshift({ key: "available", label: "Disponível" });
+  }
+  if (!rows.some((r) => r.key === "promotion")) {
+    rows.unshift({ key: "promotion", label: "Promoção" });
   }
   rows.push({ key: "featured", label: "Destaque na home" });
   return rows;
@@ -549,8 +560,8 @@ export function ProductForm({
             )}
           </button>
         ))}
-        {FLAGS.map((f) => (
-          <input key={f.key} type="checkbox" name={f.key} checked={flags[f.key]} readOnly className="hidden" />
+        {ALL_FLAGS.map((key) => (
+          <input key={key} type="checkbox" name={key} checked={flags[key]} readOnly className="hidden" />
         ))}
       </div>
 

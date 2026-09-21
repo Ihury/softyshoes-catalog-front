@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 import { ProductImage } from "@/components/ui/ProductImage";
 import { AdminListControls } from "@/components/admin/AdminListControls";
 import { useCatalogFilter } from "@/components/client/CatalogFilter";
@@ -55,13 +56,32 @@ export function AdminList({
   filters: Filter[];
 }) {
   const { match } = useCatalogFilter();
+  const router = useRouter();
   const [pending, startMove] = useTransition();
+  /** The row being moved, so only its own arrows go quiet. */
+  const [moving, setMoving] = useState<string | null>(null);
   const shown = match(rows);
 
-  // The arrows move a model within the whole catalog, not within whatever the
-  // tabs are showing, so they are only offered on the unfiltered list — an
-  // arrow that jumps a model past rows you cannot see is worse than no arrow.
-  const orderable = shown.length === rows.length;
+  /**
+   * Swaps a model with the row next to it *on screen*.
+   *
+   * The neighbour is taken from the filtered list, so an arrow does what it
+   * looks like it does even when a tab is on: the model lands above the row
+   * drawn above it, however far apart the two are in the stored order.
+   *
+   * The refresh is the point. The action revalidates on the server, but the
+   * listing is a client tree holding rows it was handed once — without asking
+   * the router for them again the new order only appeared on a manual reload.
+   */
+  const move = (id: string, neighbour: AdminRow | undefined) => {
+    if (!neighbour) return;
+    setMoving(id);
+    startMove(async () => {
+      await moveProduct(id, neighbour.id);
+      router.refresh();
+      setMoving(null);
+    });
+  };
 
   return (
     <>
@@ -169,13 +189,13 @@ export function AdminList({
                   <MoveButton
                     label={`Subir ${r.name}`}
                     up
-                    disabled={!orderable || pos === 0 || pending}
-                    onClick={() => startMove(() => void moveProduct(r.id, "up"))}
+                    disabled={i === 0 || (pending && moving === r.id)}
+                    onClick={() => move(r.id, shown[i - 1])}
                   />
                   <MoveButton
                     label={`Descer ${r.name}`}
-                    disabled={!orderable || pos === rows.length - 1 || pending}
-                    onClick={() => startMove(() => void moveProduct(r.id, "down"))}
+                    disabled={i === shown.length - 1 || (pending && moving === r.id)}
+                    onClick={() => move(r.id, shown[i + 1])}
                   />
                 </div>
               </div>

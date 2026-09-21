@@ -42,6 +42,13 @@ export default async function AdminListPage() {
       .order("created_at", { ascending: false }),
   ]);
 
+  // The status word names a filter the seller keeps. Deleting the "Pedidos"
+  // tab retires the idea of a pedido from the admin too, rather than leaving
+  // rows labelled with a state nothing can reach any more.
+  const showsPedidos = filters.some((f) => f.rule === "ped");
+  const statusOf = (p: Row) =>
+    showsPedidos && p.ordered ? "Pedidos" : p.available ? "Publicado" : "Pausado";
+
   const rows: AdminRow[] = asList<Row>(data).map((p) => ({
     id: p.id,
     name: p.name,
@@ -50,7 +57,7 @@ export default async function AdminListPage() {
     photo: asList<string>(p.photos)[0] ?? null,
     brand: p.brand ?? null,
     sizeCount: asList<number>(p.sizes).length,
-    status: p.ordered ? "Pedidos" : p.available ? "Publicado" : "Pausado",
+    status: statusOf(p),
     promotion: p.promotion,
     available: p.available,
     ordered: p.ordered,

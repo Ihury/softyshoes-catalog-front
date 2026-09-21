@@ -106,10 +106,20 @@ export const getCatalog = unstable_cache(
 
 export const getPublicBrands = unstable_cache(
   async (): Promise<Brand[]> => {
-    return orThrow(await anon.from("brands").select("id,name,position,created_at").order("position").order("name")) ?? [];
+    const rows =
+      orThrow(
+        await anon.from("brands").select("id,name,position,created_at").order("position").order("name")
+      ) ?? [];
+    // The seller's choice on the Marcas screen, applied here so every menu that
+    // draws this list agrees. Saving it busts BRANDS_TAG, which is what makes
+    // the switch show up on the storefront rather than only in the admin.
+    const { brand_order } = await getPublicSiteSettings();
+    return brand_order === "az"
+      ? rows.slice().sort((a, b) => a.name.localeCompare(b.name, "pt"))
+      : rows;
   },
-  ["brands"],
-  { tags: [BRANDS_TAG], revalidate: 300 }
+  ["brands", "v2"],
+  { tags: [BRANDS_TAG, SITE_TAG], revalidate: 300 }
 );
 
 export const getFeatured = unstable_cache(
@@ -174,6 +184,7 @@ export const getPublicSiteSettings = unstable_cache(
         id: 1,
         favicon_url: "",
         hero_mode: "replace",
+        brand_order: "az",
         updated_at: new Date().toISOString(),
       }
     );

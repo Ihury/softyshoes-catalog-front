@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { AddRow, AdminScreen, MoveColumn, PillGroup, RemoveButton, useAction } from "@/components/admin/parts";
-import { createBrand, deleteBrand, moveBrand } from "@/lib/actions";
+import { createBrand, deleteBrand, moveBrand, saveBrandOrder } from "@/lib/actions";
+import type { BrandOrder } from "@/lib/types";
 
 type Row = { id: string; name: string; total: number; published: number; position: number };
 
@@ -12,9 +13,11 @@ const SORT_OPTIONS = [
   { value: "manual", label: "Ordem manual" },
 ];
 
-export function BrandsView({ rows }: { rows: Row[] }) {
+export function BrandsView({ rows, order }: { rows: Row[]; order: BrandOrder }) {
   const [newBrand, setNewBrand] = useState("");
-  const [sort, setSort] = useState<"az" | "manual">("az");
+  // Held locally as well so the list reorders on the click rather than after
+  // the round trip; the server is the one that makes it stick.
+  const [sort, setSort] = useState<BrandOrder>(order);
   const { error, setError, pending, run } = useAction();
 
   // Sorting is a view of the same list: the manual order is always stored, and
@@ -30,8 +33,16 @@ export function BrandsView({ rows }: { rows: Row[] }) {
         size="xs"
         options={SORT_OPTIONS}
         value={sort}
-        onChange={(v) => setSort(v as "az" | "manual")}
+        disabled={pending}
+        onChange={(v) => {
+          const next = v as BrandOrder;
+          setSort(next);
+          run(() => saveBrandOrder(next));
+        }}
       />
+      <div className="mt-2 text-xs text-ink-25">
+        Vale também para o menu &quot;Marca&quot; do site.
+      </div>
 
       <div className="mt-4 flex flex-col">
         {shown.map((b, i) => (

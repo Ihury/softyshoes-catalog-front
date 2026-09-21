@@ -168,10 +168,14 @@ export type SellerSettings = {
 /** Which slot the home highlight gives to the banners. */
 export type HeroMode = "replace" | "both";
 
+/** How the brand menu is ordered, on the storefront as well as in the admin. */
+export type BrandOrder = "az" | "manual";
+
 export type SiteSettings = {
   id: number;
   favicon_url: string;
   hero_mode: HeroMode;
+  brand_order: BrandOrder;
   updated_at: string;
 };
 

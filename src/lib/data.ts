@@ -117,6 +117,7 @@ export async function getSiteSettings(): Promise<SiteSettings> {
       id: 1,
       favicon_url: "",
       hero_mode: "replace",
+      brand_order: "az",
       updated_at: new Date().toISOString(),
     }
   );

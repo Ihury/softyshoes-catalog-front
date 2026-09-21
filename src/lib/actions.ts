@@ -19,7 +19,7 @@ import {
 } from "@/lib/cache-tags";
 import { asList, FILTER_RULES, ETIQUETA_STYLES } from "@/lib/types";
 import { checkCoupon } from "@/lib/catalog";
-import type { EtiquetaStyle, FilterRule, HeroMode, OrderItem } from "@/lib/types";
+import type { BrandOrder, EtiquetaStyle, FilterRule, HeroMode, OrderItem } from "@/lib/types";
 
 // ---------- Auth ----------
 
@@ -75,22 +75,76 @@ async function moveWithin(
   direction: "up" | "down",
   order: string
 ): Promise<string | null> {
-  const { data } = await supabase.from(table).select("id,position").order("position").order(order);
-  const rows = asList<{ id: string; position: number }>(data);
+  const rows = await orderedIds(supabase, table, order);
   const i = rows.findIndex((r) => r.id === id);
   const j = direction === "up" ? i - 1 : i + 1;
   if (i < 0 || j < 0 || j >= rows.length) return null;
+  return renumber(supabase, table, rows, i, j);
+}
 
+/**
+ * Moves a row to where `neighbourId` sits, rather than one step.
+ *
+ * This is what lets the arrows work while a filter is on. The listing only
+ * shows some of the catalog, so "up" means "above the row above me *on screen*"
+ * — which can be several places away in the stored order. The client sends the
+ * neighbour it drew; the server resolves both to indexes and moves one to the
+ * other, leaving everything in between in the order it was.
+ */
+async function placeNextTo(
+  supabase: SupabaseClient,
+  table: string,
+  id: string,
+  neighbourId: string,
+  order: string
+): Promise<string | null> {
+  const rows = await orderedIds(supabase, table, order);
+  const from = rows.findIndex((r) => r.id === id);
+  const to = rows.findIndex((r) => r.id === neighbourId);
+  if (from < 0 || to < 0 || from === to) return null;
+  return renumber(supabase, table, rows, from, to);
+}
+
+async function orderedIds(supabase: SupabaseClient, table: string, order: string) {
+  const { data } = await supabase.from(table).select("id,position").order("position").order(order);
+  return asList<{ id: string; position: number }>(data);
+}
+
+/**
+ * Lifts the row at `from` out and drops it back in at `to`, then writes the
+ * positions that actually changed.
+ *
+ * Removing before inserting is what makes one index work for both directions:
+ * moving down, the target shifts left by one as the row leaves, and inserting
+ * at `to` lands just after it; moving up, nothing before it shifts, and `to` is
+ * the spot in front of it.
+ *
+ * Only the rows whose number moved are written. The old code renumbered the
+ * whole list — 59 sequential round trips for one click on this catalog, which
+ * is most of why the arrows felt like they had stopped responding. A run with
+ * duplicated or all-zero positions still heals, because the target numbering is
+ * computed for the entire list either way.
+ */
+async function renumber(
+  supabase: SupabaseClient,
+  table: string,
+  rows: { id: string; position: number }[],
+  from: number,
+  to: number
+): Promise<string | null> {
   const reordered = rows.slice();
-  [reordered[i], reordered[j]] = [reordered[j], reordered[i]];
-  for (let k = 0; k < reordered.length; k++) {
-    const { error } = await supabase
-      .from(table)
-      .update({ position: k + 1 })
-      .eq("id", reordered[k].id);
-    if (error) return error.message;
-  }
-  return null;
+  const [moved] = reordered.splice(from, 1);
+  reordered.splice(to, 0, moved);
+
+  const writes = reordered
+    .map((row, k) => ({ id: row.id, position: k + 1, was: row.position }))
+    .filter((row) => row.position !== row.was);
+
+  const results = await Promise.all(
+    writes.map((row) => supabase.from(table).update({ position: row.position }).eq("id", row.id))
+  );
+  const failed = results.find((r) => r.error);
+  return failed?.error?.message ?? null;
 }
 
 /** Where a new row lands: at the end, never jumping to the front. Taken in JS
@@ -431,10 +485,16 @@ async function replaceEtiquetas(
   return error ? error.message : null;
 }
 
-/** Moves a model one place in the order the storefront shows. */
-export async function moveProduct(id: string, direction: "up" | "down") {
+/**
+ * Moves a model to where `neighbourId` sits in the order the storefront shows.
+ *
+ * The neighbour comes from the listing, so it is the row the seller can see
+ * above or below this one — the same thing as one step when nothing is
+ * filtered, and the only sensible reading of "up" when something is.
+ */
+export async function moveProduct(id: string, neighbourId: string) {
   const supabase = await createClient();
-  const error = await moveWithin(supabase, "products", id, direction, "created_at");
+  const error = await placeNextTo(supabase, "products", id, neighbourId, "created_at");
   if (error) return { error };
   revalidateTag(CATALOG_TAG, { expire: 0 });
   revalidateStorefront();
@@ -456,9 +516,26 @@ export async function deleteProduct(productId: string) {
 
 function afterSiteWrite() {
   revalidateTag(SITE_TAG, { expire: 0 });
+  // The brand list is cached separately but reads `brand_order` out of these
+  // settings, so it has to go stale with them or the storefront menu keeps the
+  // order the seller just changed.
+  revalidateTag(BRANDS_TAG, { expire: 0 });
   revalidateStorefront();
   revalidatePath("/admin/site");
+  revalidatePath("/admin/marcas");
   return { error: null };
+}
+
+/** The order the brand menu is drawn in, on the storefront as well as here. */
+export async function saveBrandOrder(order: BrandOrder) {
+  const value: BrandOrder = order === "manual" ? "manual" : "az";
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("site_settings")
+    .update({ brand_order: value, updated_at: new Date().toISOString() })
+    .eq("id", 1);
+  if (error) return { error: error.message };
+  return afterSiteWrite();
 }
 
 export async function saveSiteSettings(faviconUrl: string, heroMode: HeroMode) {

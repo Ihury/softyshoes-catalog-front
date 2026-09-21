@@ -117,8 +117,11 @@ export function CartView({ seller, siteUrl }: { seller: SellerSettings; siteUrl:
           aria-label="Código do cupom"
           className="flex-1 min-w-0 h-10 px-4 border border-ink-10 rounded-ui bg-paper text-sm text-ink outline-none transition-colors focus:border-ink-25"
         />
+        {/* Outlined and grey while the field is empty, solid ink once there is
+            a code to send — the handoff draws the two states, and the grey one
+            was reading as a second disabled box next to the input. */}
         <Button
-          variant="outline"
+          variant={code.trim() ? "solid" : "outline"}
           onClick={onApplyCoupon}
           disabled={!code.trim() || checking}
           className="flex-none"
@@ -146,7 +149,7 @@ export function CartView({ seller, siteUrl }: { seller: SellerSettings; siteUrl:
       </div>
       {discount ? (
         <div className="mt-2 flex items-baseline justify-between">
-          <span className="text-xs text-ink-50">Total com desconto</span>
+          <span className="text-sm text-ink-50">Total com desconto</span>
           <span className="text-md font-normal text-ink">{brl(total)}</span>
         </div>
       ) : null}
