@@ -189,6 +189,25 @@
   }
 }
 
+/* Safari on iOS zooms the page in whenever a field it focuses draws its text
+   below 16px, and it never zooms back out: the header ends up wider than the
+   viewport and the whole layout sits shifted until the page is reloaded. The
+   app's fields are 14px, so on a touch screen they are raised to the threshold.
+   Guarded on the input device rather than on width, so a desktop window
+   narrowed to phone size keeps the handoff's 14px — and so the fix costs no
+   pinch-zoom, which `maximum-scale` would have taken away.
+
+   Deliberately outside `@layer base`, unlike the resets above: this has to beat
+   the `text-sm` on each field, and a layered rule loses to a utility however
+   specific it is. Unlayered is the only thing that outranks them. */
+@media (hover: none) and (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
 .no-scrollbar {
   scrollbar-width: none;
   -ms-overflow-style: none;
