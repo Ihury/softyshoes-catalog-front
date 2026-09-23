@@ -87,6 +87,22 @@ export function IconCart({ className, size = 16 }: IconProps) {
   );
 }
 
+/** Drag handle: two columns of three dots on the 16×16 grid. Filled rather
+ *  than stroked — a 1.5 stroke around a 2px dot is just a blob — but sized so
+ *  it carries the same visual weight as the stroked icons beside it. */
+export function IconGrip({ className, size = 16 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" className={className}>
+      <circle cx="6" cy="3.5" r="1.25" />
+      <circle cx="10" cy="3.5" r="1.25" />
+      <circle cx="6" cy="8" r="1.25" />
+      <circle cx="10" cy="8" r="1.25" />
+      <circle cx="6" cy="12.5" r="1.25" />
+      <circle cx="10" cy="12.5" r="1.25" />
+    </svg>
+  );
+}
+
 /** Close / remove, on the same 16×16 grid as the rest. */
 export function IconClose({ className, size = 16 }: IconProps) {
   return (
