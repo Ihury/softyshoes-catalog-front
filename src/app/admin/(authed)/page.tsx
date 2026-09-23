@@ -42,12 +42,16 @@ export default async function AdminListPage() {
       .order("created_at", { ascending: false }),
   ]);
 
-  // The status word names a filter the seller keeps. Deleting the "Pedidos"
-  // tab retires the idea of a pedido from the admin too, rather than leaving
-  // rows labelled with a state nothing can reach any more.
+  // "Publicado" and "Pausado" are gone at the client's request: they read as a
+  // promise the site does not keep, since an unavailable model still shows in
+  // the catalog's "Todos" tab. The Disponível switch on the edit screen is
+  // where that state is set and read now.
+  //
+  // "Pedidos" stays, and still only when a filter uses the rule — it names
+  // something a row genuinely is, rather than a publication state. An empty
+  // string means the row has nothing to say, and neither column draws.
   const showsPedidos = filters.some((f) => f.rule === "ped");
-  const statusOf = (p: Row) =>
-    showsPedidos && p.ordered ? "Pedidos" : p.available ? "Publicado" : "Pausado";
+  const statusOf = (p: Row) => (showsPedidos && p.ordered ? "Pedidos" : "");
 
   const rows: AdminRow[] = asList<Row>(data).map((p) => ({
     id: p.id,

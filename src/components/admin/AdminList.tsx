@@ -177,11 +177,13 @@ export function AdminList({
               </div>
               <div className="hidden md:flex relative z-10 pointer-events-none flex-col gap-1">
                 <span className="text-xs text-ink-50">{r.sizeCount} num.</span>
-                <span className="text-xs text-ink-25">{r.status}</span>
+                {r.status ? <span className="text-xs text-ink-25">{r.status}</span> : null}
               </div>
 
               <div className="relative z-10 flex-none flex flex-col items-end gap-1 md:flex-row md:items-center md:justify-end md:gap-1">
-                <span className="md:hidden text-xs text-ink-50">{r.status}</span>
+                {r.status ? (
+                  <span className="md:hidden text-xs text-ink-50">{r.status}</span>
+                ) : null}
                 {r.featured ? (
                   <span className="md:hidden text-xs text-ink font-normal">Destaque</span>
                 ) : null}
