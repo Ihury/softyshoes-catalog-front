@@ -2,6 +2,21 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
+    // Every photo is served as stored, straight from Supabase, and Vercel's
+    // optimiser is not called at all.
+    //
+    // The Hobby plan caps image transformations per month, and once the cap is
+    // reached every size not already in the cache answers 402
+    // OPTIMIZED_IMAGE_REQUEST_PAYMENT_REQUIRED — a broken image on the page,
+    // not a slower one. New photos broke first, because nothing about them is
+    // cached. Raising `quality` to 85 had changed the cache key of every
+    // derivative, so the whole catalog was regenerated inside one cycle, and
+    // that is very likely what ran the cap out.
+    //
+    // The price is weight: a card now downloads the stored file rather than a
+    // card-sized AVIF. To bring the optimiser back — on a plan whose quota
+    // covers the catalog — delete this line; everything below is still set.
+    unoptimized: true,
     // The grid is fluid now — columns are at least 150px on a phone and 200px
     // on a desktop — so these are the widths the layout actually asks for. The
     // default ladder generates a dozen sizes nothing ever requests.
