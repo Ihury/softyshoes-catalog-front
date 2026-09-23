@@ -185,6 +185,7 @@ export const getPublicSiteSettings = unstable_cache(
         favicon_url: "",
         hero_mode: "replace",
         brand_order: "az",
+        hero_card_style: "claro",
         updated_at: new Date().toISOString(),
       }
     );

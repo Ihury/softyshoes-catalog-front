@@ -538,14 +538,20 @@ export async function saveBrandOrder(order: BrandOrder) {
   return afterSiteWrite();
 }
 
-export async function saveSiteSettings(faviconUrl: string, heroMode: HeroMode) {
+export async function saveSiteSettings(
+  faviconUrl: string,
+  heroMode: HeroMode,
+  heroCardStyle: EtiquetaStyle
+) {
   const mode: HeroMode = heroMode === "both" ? "both" : "replace";
+  const card: EtiquetaStyle = ETIQUETA_STYLES.includes(heroCardStyle) ? heroCardStyle : "claro";
   const supabase = await createClient();
   const { error } = await supabase
     .from("site_settings")
     .update({
       favicon_url: faviconUrl.trim(),
       hero_mode: mode,
+      hero_card_style: card,
       updated_at: new Date().toISOString(),
     })
     .eq("id", 1);

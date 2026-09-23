@@ -29,7 +29,12 @@ export default async function HomePage() {
 
   return (
     <div className="flex-1 w-full max-w-[1280px] mx-auto px-[clamp(16px,5vw,24px)] md:px-[clamp(20px,4vw,48px)] md:pt-8 pb-6 md:pb-14 flex flex-col">
-      <HomeHero banners={banners} featured={featured} heroMode={site.hero_mode} />
+      <HomeHero
+        banners={banners}
+        featured={featured}
+        heroMode={site.hero_mode}
+        cardStyle={site.hero_card_style}
+      />
 
       <div className={hasHero ? "mt-5 md:mt-8" : ""}>
         <CatalogControls

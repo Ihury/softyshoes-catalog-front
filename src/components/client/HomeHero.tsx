@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { EtiquetaChip } from "@/components/ui/Chip";
+import { EtiquetaChip, finishOf } from "@/components/ui/Chip";
 import { ProductImage } from "@/components/ui/ProductImage";
-import { IconChevronRight } from "@/components/icons";
+import { IconChevronLeft, IconChevronRight } from "@/components/icons";
 import { principalEtiqueta } from "@/lib/etiquetas";
 import { brl } from "@/lib/format";
-import type { Banner, CatalogItem, HeroMode } from "@/lib/types";
+import type { Banner, CatalogItem, EtiquetaStyle, HeroMode } from "@/lib/types";
 
 /** How long a slide rests before the next one comes in. */
 const AUTOPLAY_MS = 10_000;
@@ -15,6 +15,12 @@ const AUTOPLAY_MS = 10_000;
 const RESUME_MS = 12_000;
 /** Matches the `gap-3` between slides, which the scroll maths has to account for. */
 const GAP = 12;
+
+/** The two carousel arrows, identical but for which edge they sit on. */
+const ARROW =
+  "hidden md:flex absolute top-1/2 -translate-y-1/2 z-20 w-8 h-8 items-center justify-center " +
+  "rounded-full bg-paper-50 backdrop-blur-[14px] text-ink transition-opacity hover:opacity-60 " +
+  "active:scale-90";
 
 type Slide =
   | { kind: "banner"; banner: Banner }
@@ -37,10 +43,13 @@ export function HomeHero({
   banners,
   featured,
   heroMode,
+  cardStyle = "claro",
 }: {
   banners: Banner[];
   featured: CatalogItem | null;
   heroMode: HeroMode;
+  /** Finish of the highlight's name-and-price tarja, set by the seller. */
+  cardStyle?: EtiquetaStyle;
 }) {
   const track = useRef<HTMLDivElement | null>(null);
   const pausedUntil = useRef(0);
@@ -77,6 +86,12 @@ export function HomeHero({
 
   if (count === 0) return null;
 
+  /** One step either way, wrapping, so the arrows keep working at both ends. */
+  const step = (delta: number) => {
+    pausedUntil.current = Date.now() + RESUME_MS;
+    slideTo((index + delta + count) % count);
+  };
+
   const current = slides[Math.min(index, count - 1)];
   const onImage = current
     ? current.kind === "featured"
@@ -111,7 +126,7 @@ export function HomeHero({
             className="flex-none w-full snap-center relative h-[180px] md:h-[340px] rounded-ui overflow-hidden bg-ink-10"
           >
             {slide.kind === "featured" ? (
-              <FeaturedSlide product={slide.product} />
+              <FeaturedSlide product={slide.product} cardStyle={cardStyle} />
             ) : (
               <BannerSlide banner={slide.banner} />
             )}
@@ -124,34 +139,64 @@ export function HomeHero({
         // 5px apart, the active one at 1.35, exactly as the handoff draws them.
         // They read light over a photo and dark over an empty banner, which is
         // why the colour follows the slide rather than being fixed.
-        <div className="absolute inset-x-0 bottom-4 z-20 flex items-center justify-center gap-[5px]">
-          {slides.map((slide, i) => (
-            <button
-              key={`dot-${slideKey(slide)}`}
-              type="button"
-              aria-label={`Ir para o destaque ${i + 1}`}
-              aria-current={i === index}
-              onClick={() => {
-                pausedUntil.current = Date.now() + RESUME_MS;
-                slideTo(i);
-              }}
-              // The dot is 4px; the button around it is a real touch target.
-              className="w-5 h-5 flex items-center justify-center"
-            >
-              <span
-                className={`block w-1 h-1 rounded-full transition-[background-color,transform] duration-300 ${
-                  onImage
-                    ? i === index
-                      ? "bg-paper scale-135"
-                      : "bg-paper-50"
-                    : i === index
-                      ? "bg-ink scale-135"
-                      : "bg-ink-25"
-                }`}
-              />
-            </button>
-          ))}
-        </div>
+        <>
+          <div className="absolute inset-x-0 bottom-4 z-20 flex items-center justify-center gap-[5px]">
+            {slides.map((slide, i) => (
+              <button
+                key={`dot-${slideKey(slide)}`}
+                type="button"
+                aria-label={`Ir para o destaque ${i + 1}`}
+                aria-current={i === index}
+                onClick={() => {
+                  pausedUntil.current = Date.now() + RESUME_MS;
+                  slideTo(i);
+                }}
+                // The button is the dot itself, so the row is spaced by the 5px
+                // gap alone. It used to be a 20px box, which pushed the dots
+                // four times further apart than the gap said. The tap target
+                // comes back below as an overlay that reaches the gap's middle
+                // on each side and no further, so neighbours never overlap.
+                className="relative w-1 h-1"
+              >
+                {/* The scale lives on the dot, not on the button: on the button
+                    it enlarged the hit overlay with it, and the active dot's
+                    target then ran into its neighbour's. */}
+                <span
+                  className={`block w-full h-full rounded-full transition-[background-color,transform] duration-300 ${
+                    onImage
+                      ? i === index
+                        ? "bg-paper scale-135"
+                        : "bg-paper-50"
+                      : i === index
+                        ? "bg-ink scale-135"
+                        : "bg-ink-25"
+                  }`}
+                />
+                <span aria-hidden className="absolute" style={{ inset: "-8px -2.5px" }} />
+              </button>
+            ))}
+          </div>
+
+          {/* Desktop only: a touch screen swipes, and an arrow sitting over the
+              art is one more thing in the way. Same 16px chevron and 1.5 stroke
+              as the cart, so the whole icon set reads as one hand. */}
+          <button
+            type="button"
+            aria-label="Destaque anterior"
+            onClick={() => step(-1)}
+            className={ARROW + " left-4"}
+          >
+            <IconChevronLeft />
+          </button>
+          <button
+            type="button"
+            aria-label="Próximo destaque"
+            onClick={() => step(1)}
+            className={ARROW + " right-4"}
+          >
+            <IconChevronRight />
+          </button>
+        </>
       ) : null}
     </div>
   );
@@ -191,8 +236,15 @@ function BannerSlide({ banner }: { banner: Banner }) {
   );
 }
 
-function FeaturedSlide({ product }: { product: CatalogItem }) {
+function FeaturedSlide({
+  product,
+  cardStyle,
+}: {
+  product: CatalogItem;
+  cardStyle: EtiquetaStyle;
+}) {
   const chip = principalEtiqueta(product.etiquetas, product.promotion, "hero");
+  const card = finishOf(cardStyle);
   return (
     <Link
       href={`/produto/${product.slug}`}
@@ -200,7 +252,7 @@ function FeaturedSlide({ product }: { product: CatalogItem }) {
       // Opts out of the global `a:hover` fade: on a photo this wide, dropping
       // the whole slot to 60% reads as the image graying out, not as a link
       // acknowledging the pointer. The press still answers with a scale.
-      className="block absolute inset-0 text-left transition-transform duration-200 hover:opacity-100 active:scale-[.985]"
+      className="block absolute inset-0 text-left hover:opacity-100"
     >
       <ProductImage
         src={product.photos?.[0]}
@@ -212,19 +264,23 @@ function FeaturedSlide({ product }: { product: CatalogItem }) {
       <div className="absolute top-4 left-4 md:top-6 md:left-6">
         <EtiquetaChip name={chip.name} style={chip.style} />
       </div>
-      <div className="absolute left-4 right-4 bottom-4 md:left-6 md:right-auto md:bottom-6 md:max-w-[420px] px-3 py-2 bg-paper-50 backdrop-blur-[20px] rounded-ui flex items-center gap-3 md:gap-4">
+      {/* The finish carries its own text colour, so the name, the price and the
+          chevron all inherit rather than each naming a shade that only works on
+          the light glass this used to be fixed at. */}
+      <div
+        className={`absolute left-4 right-4 bottom-4 md:left-6 md:right-auto md:bottom-6 md:max-w-[420px] px-3 py-2 rounded-ui flex items-center gap-3 md:gap-4 ${card.className}`}
+        style={card.style}
+      >
         <div className="flex-1 min-w-0 flex flex-col gap-1">
-          <div className="text-sm font-normal text-ink whitespace-nowrap overflow-hidden text-ellipsis">
+          <div className="text-sm font-normal whitespace-nowrap overflow-hidden text-ellipsis">
             {product.name}
           </div>
-          <div className="flex items-baseline gap-2 text-xs whitespace-nowrap">
-            <span className="text-ink-50">{brl(product.price)} un.</span>
-            {product.old_price ? (
-              <span className="text-ink-25 line-through">{brl(product.old_price)}</span>
-            ) : null}
+          <div className="flex items-baseline gap-2 text-xs whitespace-nowrap opacity-65">
+            <span>{brl(product.price)} un.</span>
+            {product.old_price ? <span className="line-through">{brl(product.old_price)}</span> : null}
           </div>
         </div>
-        <IconChevronRight className="text-ink-50" />
+        <IconChevronRight className="opacity-65" />
       </div>
     </Link>
   );

@@ -22,13 +22,31 @@ export function RelatedCarousel({ products }: { products: CatalogItem[] }) {
     pausedUntil.current = Date.now() + RESUME_MS;
   };
 
+  /**
+   * Held while the pointer is over the row: a card that slides out from under
+   * the cursor mid-read is worse than one that never moved.
+   *
+   * Kept as its own flag rather than by pushing `pausedUntil` forward. Hovering
+   * is not the same as taking hold of the row: leaving should hand it straight
+   * back, while a wheel or a touch earns the full twelve seconds. Writing both
+   * into one timestamp meant a passing cursor could add twelve seconds of its
+   * own, or wipe out the pause a real scroll had just asked for.
+   */
+  const hovering = useRef(false);
+  const hold = () => {
+    hovering.current = true;
+  };
+  const release = () => {
+    hovering.current = false;
+  };
+
   // Steps one card at a time and returns to the start at the end, so the row
   // keeps offering what is further along without anyone having to touch it.
   useEffect(() => {
     const node = ref.current;
     if (!node || products.length < 2) return;
     const timer = setInterval(() => {
-      if (Date.now() < pausedUntil.current) return;
+      if (hovering.current || Date.now() < pausedUntil.current) return;
       const max = node.scrollWidth - node.clientWidth;
       if (max <= 1) return;
       const card = node.children[0] as HTMLElement | undefined;
@@ -103,6 +121,8 @@ export function RelatedCarousel({ products }: { products: CatalogItem[] }) {
       <div
         ref={ref}
         onPointerDown={pause}
+        onMouseEnter={hold}
+        onMouseLeave={release}
         className="no-scrollbar mt-3 md:mt-4 -mx-[clamp(16px,5vw,24px)] md:mx-0 px-[clamp(16px,5vw,24px)] md:px-0 flex gap-3 md:gap-6 overflow-x-auto"
         style={{ touchAction: "pan-x pan-y", scrollPaddingInlineStart: 24 }}
       >

@@ -20,6 +20,28 @@ const FINISHES: Record<EtiquetaStyle, { variant: Variant; blur: number }> = {
   branco: { variant: "paper", blur: 0 },
 };
 
+/**
+ * The same four finishes, as classes a caller can put on its own element.
+ *
+ * The highlight's name-and-price tarja is not a chip — it is a wider box with
+ * two lines and a chevron — but the seller picks its colour from the same list,
+ * so it has to resolve to the same surface. Returning the classes keeps one
+ * definition of what "escuro" looks like instead of a second copy that drifts.
+ */
+export function finishOf(style: EtiquetaStyle) {
+  const finish = FINISHES[style] ?? FINISHES.escuro;
+  return {
+    className: variants[finish.variant],
+    style:
+      finish.blur > 0
+        ? {
+            backdropFilter: `blur(${finish.blur}px)`,
+            WebkitBackdropFilter: `blur(${finish.blur}px)`,
+          }
+        : undefined,
+  };
+}
+
 export function Chip({
   children,
   variant = "dark",

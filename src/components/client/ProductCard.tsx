@@ -30,7 +30,11 @@ export function ProductCard({
       <Link
         href={`/produto/${product.slug}`}
         prefetch
-        className="w-full flex flex-col gap-3 text-left transition-[transform,opacity] duration-200 hover:opacity-90 active:scale-[.98]"
+        // No press animation: the client asked for the card to stay still on
+        // both mobile and desktop. The hover fade is the only feedback left,
+        // and it is already behind `@media (hover:hover)`, so a tap does nothing
+        // to the card at all.
+        className="w-full flex flex-col gap-3 text-left transition-opacity duration-200 hover:opacity-90"
       >
         <div className="relative w-full">
           <ProductImage

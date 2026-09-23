@@ -176,6 +176,8 @@ export type SiteSettings = {
   favicon_url: string;
   hero_mode: HeroMode;
   brand_order: BrandOrder;
+  /** The finish of the card carrying the name and price over the highlight. */
+  hero_card_style: EtiquetaStyle;
   updated_at: string;
 };
 

@@ -18,12 +18,15 @@ import {
   updateBanner,
 } from "@/lib/actions";
 import { uploadPhoto } from "@/lib/upload";
-import type { Banner, Etiqueta, HeroMode, SiteSettings } from "@/lib/types";
+import { ETIQUETA_STYLE_LABELS, ETIQUETA_STYLES } from "@/lib/types";
+import type { Banner, Etiqueta, EtiquetaStyle, HeroMode, SiteSettings } from "@/lib/types";
 
 const HERO_OPTIONS = [
   { value: "replace", label: "Substituir destaque" },
   { value: "both", label: "Mostrar os dois" },
 ];
+
+const CARD_OPTIONS = ETIQUETA_STYLES.map((v) => ({ value: v, label: ETIQUETA_STYLE_LABELS[v] }));
 
 const VISIBLE_OPTIONS = [
   { value: "on", label: "Visível" },
@@ -47,11 +50,12 @@ export function SiteView({
 }) {
   const [favicon, setFavicon] = useState(settings.favicon_url);
   const [heroMode, setHeroMode] = useState<HeroMode>(settings.hero_mode);
+  const [cardStyle, setCardStyle] = useState<EtiquetaStyle>(settings.hero_card_style);
   const [uploading, setUploading] = useState<string | null>(null);
   const { error, setError, pending, run } = useAction();
 
-  function save(nextFavicon = favicon, nextMode = heroMode) {
-    run(() => saveSiteSettings(nextFavicon, nextMode));
+  function save(nextFavicon = favicon, nextMode = heroMode, nextCard = cardStyle) {
+    run(() => saveSiteSettings(nextFavicon, nextMode, nextCard));
   }
 
   async function onFile(file: File | undefined, onUrl: (url: string) => void, key: string) {
@@ -225,7 +229,30 @@ export function SiteView({
         </div>
 
         <div className="mt-2 flex flex-col gap-3">
-          <div className="text-xs text-ink-50">Quando houver banner</div>
+          <div className="text-xs text-ink-50">Cor da tarja do destaque</div>
+          <div className="text-xs text-ink-25 max-w-[520px]">
+            É a tarja com o nome e o preço sobre a foto do modelo em destaque.
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <PillGroup
+              size="xs"
+              options={CARD_OPTIONS}
+              value={cardStyle}
+              disabled={pending}
+              onChange={(v) => {
+                const next = v as EtiquetaStyle;
+                setCardStyle(next);
+                save(favicon, heroMode, next);
+              }}
+            />
+            {/* The chip uses the same four finishes, so previewing with one
+                shows the seller exactly the surface the tarja will take. */}
+            <div className="rounded-ui bg-ink-10 p-2">
+              <EtiquetaChip name="Nome e preço" style={cardStyle} />
+            </div>
+          </div>
+
+          <div className="mt-3 text-xs text-ink-50">Quando houver banner</div>
           <PillGroup
             options={HERO_OPTIONS}
             value={heroMode}
