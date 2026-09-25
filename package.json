@@ -5,6 +5,7 @@
   "scripts": {
     "postinstall": "node scripts/decode-binary-assets.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/decode-binary-assets.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
