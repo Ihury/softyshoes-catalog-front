@@ -18,7 +18,7 @@ const GAP = 12;
 
 /** The two carousel arrows, identical but for which edge they sit on. */
 const ARROW =
-  "hidden md:flex absolute top-1/2 -translate-y-1/2 z-20 w-8 h-8 items-center justify-center " +
+  "hidden md:flex absolute top-1/2 -translate-y-1/2 z-20 w-6 h-6 items-center justify-center " +
   "rounded-full bg-paper-50 backdrop-blur-[14px] text-ink transition-opacity hover:opacity-60 " +
   "active:scale-90";
 
@@ -186,7 +186,7 @@ export function HomeHero({
             onClick={() => step(-1)}
             className={ARROW + " left-4"}
           >
-            <IconChevronLeft />
+            <IconChevronLeft size={12} />
           </button>
           <button
             type="button"
@@ -194,7 +194,7 @@ export function HomeHero({
             onClick={() => step(1)}
             className={ARROW + " right-4"}
           >
-            <IconChevronRight />
+            <IconChevronRight size={12} />
           </button>
         </>
       ) : null}

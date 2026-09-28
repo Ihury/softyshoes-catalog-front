@@ -110,14 +110,7 @@ export function RelatedCarousel({ products }: { products: CatalogItem[] }) {
 
   return (
     <div>
-      <div className="flex items-baseline justify-between">
-        <div className="text-xs text-ink-50">Também selecionados</div>
-        {/* The handoff says "Arraste para ver." here, but the row no longer
-            answers a drag: on a desktop it fought the pointer and swallowed
-            clicks on the cards. It advances on its own instead, so the line
-            says what it now does. */}
-        <div className="text-xs text-ink-25">Role para ver mais.</div>
-      </div>
+      <div className="text-xs text-ink-50">Também selecionados</div>
       <div
         ref={ref}
         onPointerDown={pause}
